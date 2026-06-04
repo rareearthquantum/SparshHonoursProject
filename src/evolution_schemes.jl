@@ -1,3 +1,11 @@
+using OrdinaryDiffEq
+using FFTW
+using Interpolations
+
+include(srcdir("stepping_schemes.jl"))
+include(srcdir("initialise_params.jl"))
+include(srcdir("equations.jl"))
+
 function evolve_a_grid(
     t_grid::LinRange{Float64,Int64},
     a_grid::Array{ComplexF64},
@@ -14,7 +22,7 @@ function evolve_a_grid(
         dy2 = x -> (ifft(v_factor .* fft(a_grid[x, k, :])))[l]
         f_2d = x -> f_a_2d(alpha, s_grid[x, :, k, l], beta, dy2(x))
         a_temp = @view a_grid[:, k, l]
-        stepping_a_2step!(a_temp, f_2d, dz, i)
+        stepping_ab_2step!(a_temp, f_2d, dz, i)
 
     end
 end

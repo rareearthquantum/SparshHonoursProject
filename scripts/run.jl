@@ -1,6 +1,9 @@
 using DrWatson
 @quickactivate "SparshHonoursProject"
 
+include(srcdir("evolution_schemes.jl"))
+include(srcdir("input_pulse_methods.jl"))
+
 ##INPUT PARAMS
 
 Nz = 128 * 2 #number of z-sites

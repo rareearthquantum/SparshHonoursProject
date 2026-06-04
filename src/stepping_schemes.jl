@@ -1,3 +1,5 @@
+include(srcdir("stepping_methods.jl"))
+
 function stepping_ab_4step!(v::AbstractArray, f::Function, h::Float64, i::Int64)
     if (i >= 4)
         adams_bashforth_4step!(v, f, h, i)
