@@ -31,15 +31,15 @@ This project is fully runnable on either Windows or Linux - macOS has yet to be 
 ## First Install
 
 To (locally) reproduce this project, do the following (NOTE: the `instantiate` command might take a while; up to 20+ minutes):
-   ```
-   terminal> cd path/to/where/you/want/to/put/it/
-   terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git
-   terminal> cd SparshHonoursProject
-   julia> ]
-   pkg> add DrWatson
-   pkg> activate
-   pkg> instantiate
-   ```
+```
+terminal> cd path/to/where/you/want/to/put/it/
+terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git
+terminal> cd SparshHonoursProject
+julia> ]
+pkg> add DrWatson
+pkg> activate
+pkg> instantiate
+```
 
 This will install all necessary packages for you to be able to run the scripts and
 everything should work out of the box, including correctly finding local paths.
@@ -48,23 +48,33 @@ everything should work out of the box, including correctly finding local paths.
 
 Now once its set up, to run any script from a fresh terminal session:
 
-Option 1 - simple:
-   ```
-   terminal> cd path/to/project/directory
-   terminal> julia scripts/run.jl
-   ```
-   And to rerun:
-   ```
-   terminal> julia scripts/run.jl
-   ```
+### Option 1
 
-Option 2 - access to Julia REPL and Pkg, also successive reruns take less time:
-   ```
-   terminal> cd path/to/project/directory
-   terminal> julia
-   julia> include("scripts/run.jl")
-   ```
-   And to rerun:
-   ```
-   julia> include("scripts/run.jl")
-   ```
+Nice and simple
+
+```
+terminal> cd path/to/project/directory
+terminal> julia scripts/run.jl
+```
+
+And to rerun:
+
+```
+terminal> julia scripts/run.jl
+```
+
+### Option 2
+
+Access to Julia REPL and Pkg, also successive reruns take less time:
+
+```
+terminal> cd path/to/project/directory
+terminal> julia
+julia> include("scripts/run.jl")
+```
+
+And to rerun:
+
+```
+julia> include("scripts/run.jl")
+```
