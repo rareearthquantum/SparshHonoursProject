@@ -20,7 +20,7 @@ function evolve_a_grid(
 )
     @inbounds for k in eachindex(t_grid)
         dy2 = x -> (ifft(v_factor .* fft(a_grid[x, k, :])))[l]
-        f_2d = x -> f_a_2d(alpha, s_grid[x, :, k, l], beta, dy2(x))
+        f_2d = x -> f_a_2d!(alpha, s_grid[x, :, k, l], beta, dy2(x))
         a_temp = @view a_grid[:, k, l]
         stepping_ab_2step!(a_temp, f_2d, dz, i)
 

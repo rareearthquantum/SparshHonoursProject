@@ -41,7 +41,7 @@ function initialise_params(
     ## A
     a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
     for l in 1:Ny
-        a_grid[1, :, l] .= f_E_t.(t_grid) .* f_E_y(y_grid[l])  #! CAREFUL
+        a_grid[1, :, l] .= f_E_t.(t_grid) .* f_E_y(y_grid[l])
     end
 
     ## V

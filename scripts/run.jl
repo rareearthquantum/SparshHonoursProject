@@ -3,6 +3,7 @@ using DrWatson
 
 include(srcdir("evolution_schemes.jl"))
 include(srcdir("input_pulse_methods.jl"))
+include(srcdir("plotting.jl"))
 
 ##INPUT PARAMS
 
@@ -12,11 +13,13 @@ Nt = 16 #number of time steps
 Ny = 32
 
 Zi, Zf = 0.0, 10.0
-Ti, Tf = 2.5, 7.5
+Ti, Tf = 0.0, 10.0
 Yi, Yf = -5.0, 5.0
 
 alpha = 0.0
-beta = 5.0e-2
+beta = 1.0e-2
+
+@show "input params initialised"
 
 ##Run
 
@@ -31,5 +34,6 @@ beta = 5.0e-2
             (Yi, Yf)
         ),
         (alpha, beta)
-    );
+    )
 
+plot_a_intensity_vs_y_z(new_y_grid,new_z_grid,new_a_grid)
