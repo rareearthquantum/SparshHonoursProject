@@ -28,3 +28,9 @@ using DrWatson
 @quickactivate "SparshHonoursProject"
 ```
 which auto-activate the project and enable local path handling from DrWatson.
+
+# My current instructions
+
+The above was auto generated.
+
+Now once its set up, to run, just cd to the directory, "julia", "using DrWatson", "@quickactivate", "@time include(./scripts/run.jl)", boom plot window should show up. Input params are currently in the run script.
