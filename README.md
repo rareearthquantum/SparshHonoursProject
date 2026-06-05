@@ -2,15 +2,13 @@
 
 ## Introduction
 
-This repository contains the code and dissertation for the honours level project of Sparsh Chandra. Supervised by [Associate Professor Jevon Longdell](https://www.otago.ac.nz/physics/staff/jevonlongdell) at the University of Otago for the partial completion of a Bachelor of Science with Honours (BSc(Hons)) in Physics.
+This repository contains the code and dissertation for the PHSI490 research project of Sparsh Chandra. Supervised by [Associate Professor Jevon Longdell](https://www.otago.ac.nz/physics/staff/jevonlongdell) at the University of Otago for the partial completion of a Bachelor of Science with Honours (BSc(Hons)) in Physics.
 
-This project aims to model photon echoes in 2 spatial dimensions, as many laser pulses are not radially uniform, a Gaussian beam is much more common. The area theorem tells us that 
+This project aims to model photon echoes in 2 spatial dimensions (2SD), as many laser pulses are not radially uniform, a Gaussian beam is much more common. The area theorem tells us that the time integral of a pulse dictates the evolution of the Bloch vectors of each atom due to the pulse. However, this integral is only in time, so it can vary in space, hence having a numeric model and/or simulation would help in the exploration of such systems.
 
-This project is working from the ground up. First starting off with the Maxwell-Bloch equations in input-output theory formalism, and then treating the operators as scalars (to begin with a more classical case) and letting $\sigma_z \approx -1$ (linearising the equations), all still in 1 spatial dimension. Then as the project progresses, more of the original equations will be reintroduced, while also extending it into a 2nd spatial dimension.
+This project is working from the ground up. First starting off with the Maxwell-Bloch equations in input-output theory formalism, and then treating the operators as scalars (to begin with a more classical case) and letting $\sigma_z \approx -1$ (linearising the equations), all still in 1SD. Then as the project progresses, more of the original equations will be reintroduced, while also extending it into 2SD.
 
-
-2 spatial dimensions, scalars, linear: this is the current case, where we will be working to stabilise the current code and then extend from scalars -> operators.
-
+2SD, scalars, linear: this is the current case, where we will be working to stabilise the current code and then extend from scalars -> operators. An extension in 3SD may even be possible in a centrosymmetric case.
 
 ## Prerequisites
 
