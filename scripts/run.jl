@@ -22,8 +22,7 @@ beta = 1.0e-2
 @show "input params initialised"
 
 ##Run
-
-(new_s_grid, new_a_grid),
+@time (new_s_grid, new_a_grid),
 (new_z_grid, new_t_grid, new_y_grid) =
     evolve_diff_2d(
         (Ein_t, Ein_y),
@@ -36,4 +35,7 @@ beta = 1.0e-2
         (alpha, beta)
     )
 
-plot_a_intensity_vs_y_z(new_y_grid,new_z_grid,new_a_grid)
+plot_a_intensity_vs_y_z(new_y_grid, new_z_grid, new_a_grid)
+
+println("Press Enter to close the plot and end this program...")
+readline()

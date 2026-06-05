@@ -1,36 +1,70 @@
 # SparshHonoursProject
 
-This code base is using the [Julia Language](https://julialang.org/) and
-[DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/)
-to make a reproducible scientific project named
-> SparshHonoursProject
+## Introduction
 
-It is authored by Sparsh Chandra.
+This repository contains the code and dissertation for the honours level project of Sparsh Chandra. Supervised by [Associate Professor Jevon Longdell](https://www.otago.ac.nz/physics/staff/jevonlongdell) at the University of Otago for the partial completion of a Bachelor of Science with Honours (BSc(Hons)) in Physics.
 
-To (locally) reproduce this project, do the following:
+This project aims to model photon echoes in 2 spatial dimensions, as many laser pulses are not radially uniform, a Gaussian beam is much more common. The area theorem tells us that 
 
-0. Download this code base. Notice that raw data are typically not included in the
-   git-history and may need to be downloaded independently.
-1. Open a Julia console and do:
+This project is working from the ground up. First starting off with the Maxwell-Bloch equations in input-output theory formalism, and then treating the operators as scalars (to begin with a more classical case) and letting $\sigma_z \approx -1$ (linearising the equations), all still in 1 spatial dimension. Then as the project progresses, more of the original equations will be reintroduced, while also extending it into a 2nd spatial dimension.
+
+
+2 spatial dimensions, scalars, linear: this is the current case, where we will be working to stabilise the current code and then extend from scalars -> operators.
+
+
+## Prerequisites
+
+You need to have [Git](https://git-scm.com/) and [Julia](https://julialang.org/) installed on your computer.
+This project is fully runnable on either Windows or Linux - macOS has yet to be tested.
+
+### Technical Lingo/Jargon/Words for the Uninitiated
+
+ - Git: A version control system and software, designed to track changes in code or files
+ - GitHub: A cloud-based service that allows you to manage, share and collaborate on Git repositories online
+ - Repository (repo): The database that stores your project's files and complete history of changes
+ - Clone: Copies an existing remote repository from a platform like GitHub to your local computer
+ - Julia: A programming language
+ - Pkg: Julia's built in package manager which handles installing, updating, and removing packages
+ - Packages: Reusable bundle of code which can extend the functionality of Julia by providing new functions and more
+ - [DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/): A Julia package designed to make the lives of scientists easier by making scientific projects easy to reproduce
+
+## First Install
+
+To (locally) reproduce this project, do the following (NOTE: the `instantiate` command might take a while; up to 20+ minutes):
    ```
-   julia> using Pkg
-   julia> Pkg.add("DrWatson") # install globally, for using `quickactivate`
-   julia> Pkg.activate("path/to/this/project")
-   julia> Pkg.instantiate()
+   terminal> cd path/to/where/you/want/to/put/it/
+   terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git
+   terminal> cd SparshHonoursProject
+   julia> ]
+   pkg> add DrWatson
+   pkg> activate
+   pkg> instantiate
    ```
 
 This will install all necessary packages for you to be able to run the scripts and
 everything should work out of the box, including correctly finding local paths.
 
-You may notice that most scripts start with the commands:
-```julia
-using DrWatson
-@quickactivate "SparshHonoursProject"
-```
-which auto-activate the project and enable local path handling from DrWatson.
+## Running
 
-# My current instructions
+Now once its set up, to run any script from a fresh terminal session:
 
-The above was auto generated.
+Option 1 - simple:
+   ```
+   terminal> cd path/to/project/directory
+   terminal> julia scripts/run.jl
+   ```
+   And to rerun:
+   ```
+   terminal> julia scripts/run.jl
+   ```
 
-Now once its set up, to run, just cd to the directory, "julia", "using DrWatson", "@quickactivate", "@time include(./scripts/run.jl)", boom plot window should show up. Input params are currently in the run script.
+Option 2 - access to Julia REPL and Pkg, also successive reruns take less time:
+   ```
+   terminal> cd path/to/project/directory
+   terminal> julia
+   julia> include("scripts/run.jl")
+   ```
+   And to rerun:
+   ```
+   julia> include("scripts/run.jl")
+   ```
