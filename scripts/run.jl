@@ -33,6 +33,4 @@ beta = 1.0e-2
 
 ##Generate plot
 plot_a_intensity_vs_y_z(new_y_grid, new_z_grid, new_a_grid)
-
-println("Press Enter to close the plot and end this program...")
-readline()
+savefig("plots/myplot.png")
