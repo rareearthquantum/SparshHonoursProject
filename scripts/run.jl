@@ -7,10 +7,10 @@ include(srcdir("plotting.jl"))
 
 ##INPUT PARAMS
 
-Nz = 64 #number of z-sites
+Nz = 128 #number of z-sites
 Nd = 2 #number of detunings/atoms at each z-site
-Nt = 16 #number of time steps
-Ny = 16
+Nt = 32 #number of time steps
+Ny = 32
 
 Z_range = (0.0, 10.0)
 T_range = (0.0, 10.0)
