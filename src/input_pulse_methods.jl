@@ -1,14 +1,15 @@
 function pulse(
-    t::Float64,
-    t0::Float64,
+    u::Float64,
+    center::Float64,
     width::Float64,
-    A::Float64
+    area::Float64
 )
-    A * exp(-((t - t0) / width)^2)
+    normalisation_factor = 1/(sqrt(pi)*width)
+    area * normalisation_factor * exp(-((u - center) / width)^2)
 end
 
 function Ein_t(t::Float64)
-    p1c, p1w, p1A = 5.0, 1.0, 1.0
+    p1c, p1w, p1A = 5.0, 1.0, pi/1
     p1 = pulse(t, p1c, p1w, p1A)
     #p2 = pulse(t,18.0,1.0,1.0)
     return p1

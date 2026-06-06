@@ -28,14 +28,14 @@ This project is fully runnable on either Windows or Linux - macOS has yet to be 
 
 ## First Install
 
-To (locally) reproduce this project, do the following (NOTE: the `instantiate` command might take a while; up to 20+ minutes):
+To (locally) reproduce this project, do the following (NOTE: the `instantiate` command might take a while to precompile the packages; up to 20+ minutes):
 ```
 terminal> cd path/to/where/you/want/to/put/it/
 terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git
 terminal> cd SparshHonoursProject
 julia> ]
 pkg> add DrWatson
-pkg> activate
+pkg> activate .
 pkg> instantiate
 ```
 
@@ -51,7 +51,7 @@ Now once its set up, to run any script from a fresh terminal session:
 Nice and simple
 
 ```
-terminal> cd path/to/project/directory
+terminal> cd path/to/SparshHonoursProject
 terminal> julia scripts/run.jl
 ```
 
@@ -66,7 +66,7 @@ terminal> julia scripts/run.jl
 Access to Julia REPL and Pkg, also successive reruns take less time:
 
 ```
-terminal> cd path/to/project/directory
+terminal> cd path/to/SparshHonoursProject
 terminal> julia
 julia> include("scripts/run.jl")
 ```
