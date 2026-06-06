@@ -1,4 +1,3 @@
-  GNU nano 5.6.1                                                                                                  slurm/run.slurm                                                                                                             
 #!/bin/bash
 
 #SBATCH --job-name=my_test_job
