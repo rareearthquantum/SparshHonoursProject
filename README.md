@@ -2,9 +2,9 @@
 
 ## Introduction
 
-This repository contains the code and dissertation for the PHSI490 research project of Sparsh Chandra. Supervised by [Associate Professor Jevon Longdell](https://www.otago.ac.nz/physics/staff/jevonlongdell) at the University of Otago for the partial completion of a Bachelor of Science with Honours (BSc(Hons)) in Physics.
+This repository contains the code and dissertation for the PHSI490 research project of Sparsh Chandra. Supervised by [Associate Professor Jevon Longdell](https://www.otago.ac.nz/physics/staff/jevonlongdell) at the University of Otago, for the partial completion of a Bachelor of Science with Honours (BSc(Hons)) in Physics.
 
-This project aims to model photon echoes in 2 spatial dimensions (2SD), as many laser pulses are not radially uniform, a Gaussian beam is much more common. The area theorem tells us that the time integral of a pulse dictates the evolution of the Bloch vectors of each atom due to the pulse. However, this integral is only in time, so it can vary in space, hence having a numeric model and/or simulation would help in the exploration of such systems.
+This project aims to model photon echoes in 2 spatial dimensions (2SD). The area theorem tells us that the time integral of a pulse dictates the evolution of the Bloch vectors of each atom due to the pulse. However, this integral is only in time, so it can vary in space. Most laser beams - which will be used to produce photon echoes - are radially Gaussian, meaning the area of the pulse will be different in the transverse direction, affecting the way photon echoes are produced. Hence, having a numeric model and/or simulation would help in the exploration of such systems.
 
 This project is working from the ground up. First starting off with the Maxwell-Bloch equations in input-output theory formalism, and then treating the operators as scalars (to begin with a more classical case) and letting $\sigma_z \approx -1$ (linearising the equations), all still in 1SD. Then as the project progresses, more of the original equations will be reintroduced, while also extending it into 2SD.
 
@@ -28,7 +28,8 @@ This project is fully runnable on either Windows or Linux - macOS has yet to be 
 
 ## First Install
 
-To (locally) reproduce this project, do the following (NOTE: the `instantiate` command might take a while to precompile the packages; up to 20+ minutes):
+To (locally) reproduce this project, do the following:
+(NOTE: the `instantiate` command might take some time to precompile the packages depending on your internet connection and computer specs; up to 20+ minutes)
 ```
 terminal> cd path/to/where/you/want/to/put/it/
 terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git
