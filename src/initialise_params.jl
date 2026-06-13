@@ -1,3 +1,5 @@
+using FFTW
+
 function initialise_params(
     f::NTuple{2,Function},
     N::NTuple{4,Int64},
@@ -8,50 +10,69 @@ function initialise_params(
     Nz, Nd, Nt, Ny = N
     (Zi, Zf), (Ti, Tf), (Yi, Yf) = B
 
-    ### Grids
-    ## Z
+
+
     z_grid = LinRange(Zi, Zf, Nz)
-    dz = (Zf - Zi) / Nz
-
-    ## Y
     y_grid = LinRange(Yi, Yf, Ny)
-    dy = (Yf - Yi) / Ny
-
-    ## T
     t_grid = LinRange(Ti, Tf, Nt)
-    dt = (Tf - Ti) / Nt
 
-    ## D
     d_grid = Array{Float64}(undef, Nz, Nd, Ny)
-    df = 1 / (Nt * dt)
-    d_width = df * Nt
+    d_width = 1 / (step(t_grid))
     for i in 1:Nz
         for l in 1:Ny
-            d_grid[i, :, l] = LinRange(-d_width, d_width, Nd)
+            d_grid[i, :, l] .= LinRange(-d_width, d_width, Nd)
         end
     end
 
-
-    ## S
     s_grid = Array{ComplexF64}(undef, Nz, Nd, Nt, Ny)
-    for l in 1:Ny
-        s_grid[:, :, 1, l] .= zeros(Nz, Nd)
-    end
+    #setting boundary conditions
+    s_grid[:, :, 1, :] .= zeros(Nz, Nd, Ny)
 
-    ## A
     a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
-    for l in 1:Ny
-        a_grid[1, :, l] .= f_E_t.(t_grid) .* f_E_y(y_grid[l])
-    end
+    #setting boundary conditions
+    a_grid[1, :, :] .= f_E_t.(t_grid) * (f_E_y.(y_grid))'
 
-    ## V
-    v_freq = fftfreq(Ny, 1 / dy)
+    v_freq = fftfreq(Ny, 1 / step(y_grid))
     v_factor = -4.0 .* π^2 .* v_freq .^ 2
 
+    grids = (z_grid, t_grid, d_grid, y_grid, s_grid, a_grid)
+    v_stuff = (v_freq, v_factor)
+
+    return grids, v_stuff
+end
+
+
+function initialise_params_test(
+    f::NTuple{2,Function},
+    N::NTuple{4,Int64},
+    B::NTuple{3,NTuple{2,Float64}}
+)
+
+    f_E_t, f_E_y = f
+    Nz, Nd, Nt, Ny = N
+    (Zi, Zf), (Ti, Tf), (Yi, Yf) = B
+
+
+    z_grid = LinRange(Zi, Zf, Nz)
+    y_grid = LinRange(Yi, Yf, Ny)
+    t_grid = LinRange(Ti, Tf, Nt)
+
+    d_grid = Array{Float64}(undef, Nz, Nd, Ny)
+    d_width = 1 / step(t_grid)
+    for i in 1:Nz
+        for l in 1:Ny
+            d_grid[i, :, l] .= LinRange(-d_width, d_width, Nd)
+        end
+    end
+
+    s_grid = Array{ComplexF64}(undef, Nz, Nd, Nt, Ny)
+    s_grid[:, :, 1, :] .= zeros(Nz, Nd, Ny)
+
+    a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
+    a_grid[1, :, :] .= f_E_t.(t_grid) * fftshift(fft(f_E_y.(y_grid)))'
+    @show size(a_grid)
 
     grids = (z_grid, t_grid, d_grid, y_grid, s_grid, a_grid)
-    differentials = (dz, dt, dy)
-    v = (v_freq, v_factor)
 
-    return (grids, differentials, v)
+    return grids
 end

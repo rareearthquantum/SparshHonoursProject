@@ -1,14 +1,18 @@
 using DrWatson
-using Dates
 @quickactivate "SparshHonoursProject"
 
 include(srcdir("evolution_schemes.jl"))
 include(srcdir("input_pulse_methods.jl"))
 include(srcdir("plotting.jl"))
 
+function lots_of_params()
+    dict_list
+    
+end
+
 ##INPUT PARAMS
 
-Nz = 128 #number of z-sites
+Nz = 128*2 #number of z-sites
 Nd = 2 #number of detunings/atoms at each z-site
 Nt = 32 #number of time steps
 Ny = 32
@@ -18,7 +22,7 @@ T_range = (0.0, 10.0)
 Y_range = (-5.0, 5.0)
 
 alpha = 0.0
-beta = 0.0
+beta = 1.0e-2
 
 @show "input params initialised"
 
@@ -34,5 +38,4 @@ beta = 0.0
 
 ##Generate plot
 plot_a_intensity_vs_y_z(new_y_grid, new_z_grid, new_a_grid)
-current_time = Dates.format(now(), "yyyymmddHHMMSS")
-savefig("plots/a_abs2_z_y_" * "alpha=" * string(alpha) * "_beta=" * string(beta) * ".png")
+savefig("plots/myplot.png")

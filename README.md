@@ -29,7 +29,7 @@ This project is fully runnable on either Windows or Linux - macOS has yet to be 
 ## First Install
 
 To (locally) reproduce this project, do the following:
-(NOTE: the `instantiate` command might take some time to precompile the packages depending on your internet connection and computer specs; up to 20+ minutes)
+(NOTE: the `instantiate` command might take some time to precompile the packages depending on your internet connection and computer specs; up to 20+ minutes):
 ```
 terminal> cd path/to/where/you/want/to/put/it/
 terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git

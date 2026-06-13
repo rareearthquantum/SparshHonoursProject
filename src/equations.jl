@@ -1,8 +1,8 @@
 function s_evolve!(du, u, p, t)
 
-    d, Nd, a_interp = p
+    d, a_interp = p
 
-    du .= im .* d .* u + im .* a_interp(t) .* ones(Nd)
+    du .= im .* d .* u + im .* a_interp(t) .* ones(length(d))
 end
 
 function f_a_2d!(alpha::Float64, s_grid::AbstractArray, beta::Float64, dy2::ComplexF64)
