@@ -1,0 +1,23 @@
+
+
+
+
+initialize a(z,y,t) to be all zeros
+
+initialize int - sigma-(z,y,t)  but in future \int {sx,sy,sz}(z,y,t) d\delta
+ 
+
+da(z,y,t)/dz = i alpha P(z,y,t) + beta da^2/dy^2
+
+
+at each step along z
+
+1. calculate P(z,y,t) using the value of a(z,y,t) 
+	call ode solver in time for each y and delta  then sum the results of delta to P(this z, y, t)
+having an array of ({sx})
+	for d in delta
+		calculate sx, sy, sz using the current value of a(z,y,t) and the equations for sx, sy, sz
+		sum over delta
+
+2. update a(z,y,t) using the equation da/dz = i alpha P + beta da^2/dy^2
+3. update sigma(z,y,t) by integrating sx, sy, sz over the current values of a(z,y,t)
