@@ -1,7 +1,7 @@
 using DrWatson
 @quickactivate "SparshHonoursProject"
 
-include(srcdir("evolution_schemes.jl"))
+include(srcdir("prototype_fft_schemes.jl"))
 include(srcdir("input_pulse_methods.jl"))
 include(srcdir("plotting.jl"))
 
@@ -9,15 +9,15 @@ include(srcdir("plotting.jl"))
 
 Nz = 128 #number of z-sites
 Nd = 32 #number of detunings/atoms at each z-site
-Nt = 16 #number of time steps
+Nt = 32 #number of time steps
 Ny = 32
 
-Z_range = (0.0, 10.0)
+Z_range = (0.0, 1.0)
 T_range = (0.0, 10.0)
 Y_range = (-5.0, 5.0)
 
-alpha = 0.0
-beta = 1.0e-2
+alpha = 1.0
+beta = 1.0
 
 @show "test run"
 

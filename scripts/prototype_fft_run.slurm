@@ -16,6 +16,6 @@
 echo "Sparsh's job started on $(hostname) at $(date)"
 echo "Working directory: $(pwd)"
 
-julia scripts/run.jl
+julia scripts/prototype_fft_run.jl
 
 echo "Job finished at $(date)"
