@@ -8,7 +8,7 @@ include(srcdir("plotting.jl"))
 ##INPUT PARAMS
 
 Nz = 128 #number of z-sites
-Nd = 32 #number of detunings/atoms at each z-site
+Nd = 2 #number of detunings/atoms at each z-site
 Nt = 32 #number of time steps
 Ny = 32
 
@@ -16,8 +16,8 @@ Z_range = (0.0, 1.0)
 T_range = (0.0, 10.0)
 Y_range = (-5.0, 5.0)
 
-alpha = 1.0
-beta = 1.0
+alpha = 0.0
+beta = 3.0
 
 @show "test run"
 
@@ -31,7 +31,10 @@ beta = 1.0
         (alpha, beta)
     )
 
-new_v_grid = fftfreq(Ny, 1 / step(new_y_grid))
+
+##IFFT back
+new_v_grid = fftshift(fftfreq(Ny, 1 / step(new_y_grid)))
+
 
 for i in eachindex(new_z_grid)
     for j in eachindex(new_t_grid)
@@ -40,8 +43,11 @@ for i in eachindex(new_z_grid)
     end
 end
 
+
+
+
 ##Generate plots
-plotting_a_intensity(new_t_grid, new_y_grid, new_z_grid, new_a_grid)
+plotting_a_intensity(new_t_grid, new_y_grid, new_z_grid, new_a_grid,clims=(0.0,1.0))
 savefig("plots/test_a_abs2" *
         "_alpha=" * string(alpha) *
         "_beta=" * string(beta) *

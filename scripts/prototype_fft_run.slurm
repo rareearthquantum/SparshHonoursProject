@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=my_test_job
+#SBATCH --job-name=my_fft_test_job
 #SBATCH --output=slurm/outputs/slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
