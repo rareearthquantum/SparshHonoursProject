@@ -17,7 +17,7 @@ function initialise_params_test(
     Nz, Nd, Nt, Ny = N
     (Zi, Zf), (Ti, Tf), (Yi, Yf) = B
 
-
+ 
     z_grid = LinRange(Zi, Zf, Nz)
     y_grid = LinRange(Yi, Yf, Ny)
     t_grid = LinRange(Ti, Tf, Nt)
@@ -30,14 +30,14 @@ function initialise_params_test(
         end
     end
 
-    s_grid = Array{ComplexF64}(undef, Nz, Nd, Nt, Ny)
-    s_grid[:, :, 1, :] .= zeros(Nz, Nd, Ny)
+    P_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
+    P_grid[:, 1, :] .= zeros(Nz, Ny)
 
     a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
     a_grid[1, :, :] .= f_E_t.(t_grid) * fftshift(fft(f_E_y.(y_grid)))'
     @show size(a_grid)
 
-    grids = (z_grid, t_grid, d_grid, y_grid, s_grid, a_grid)
+    grids = (z_grid, t_grid, d_grid, y_grid, P_grid, a_grid)
 
     return grids
 end
@@ -57,16 +57,16 @@ function evolve_a_fft_grid_test(z_grid::LinRange{Float64,Int64},
     a_grid::Array{ComplexF64},
     l::Int64,
     alpha::Float64,
-    s_grid::Array{ComplexF64},
+    P_grid::Array{ComplexF64},
     beta::Float64,
     dz::Float64,
     i::Int64
 )
 
-    P = dropdims(sum(s_grid, dims=2), dims=2)
+    #P = dropdims(sum(s_grid, dims=2), dims=2)
 
     for k in eachindex(t_grid)
-        f(iz) = f_a_fft_test!(alpha, P[iz, k, l], factor(z_grid[iz], v_grid[l], beta))
+        f(iz) = f_a_fft_test!(alpha, P_grid[iz, k, l], factor(z_grid[iz], v_grid[l], beta))
         a_temp = @view a_grid[:, k, l]
         stepping_ab_2step!(a_temp, f, dz, i)
     end
@@ -83,25 +83,30 @@ function evolve_diff_2d_test(
 )
 
     (Ti, Tf) = B[2]
-
-    z_grid, t_grid, d_grid, y_grid, s_grid, a_grid = initialise_params_test(f, N, B)
-    v_grid::LinRange{Float64,Int64} = fftshift(fftfreq(Ny, 1 / step(y_grid)))
-
     alpha::Float64, beta::Float64 = p
 
+    z_grid, t_grid, d_grid, y_grid, P_grid, a_grid = initialise_params_test(f, N, B)
+
+    v_grid::LinRange{Float64,Int64} = fftshift(fftfreq(Ny, 1 / step(y_grid)))
+    s0 = zeros(ComplexF64, Nd)
+
+    
     for i in eachindex(z_grid)
         for l in eachindex(y_grid)
 
             #evolving polarisation
-            prob = ODEProblem(s_evolve!, s_grid[i, :, 1, l], (Ti, Tf), (d_grid[i, :, l], LinearInterpolation(t_grid, a_grid[i, :, l])))
+            P_grid[i, :, l] .= dropdims(sum(
+                    solve(
+                        ODEProblem(s_evolve!, s0, (Ti, Tf), (d_grid[i, :, l], LinearInterpolation(t_grid, a_grid[i, :, l]))),
+                        Tsit5(), reltol=1e-3, abstol=1e-6, saveat=t_grid),
+                    dims=1), dims=1)
 
-            s_grid[i, :, :, l] .= solve(prob, Tsit5(), reltol=1e-3, abstol=1e-6, saveat=t_grid)
 
             #evolving electric field
-            evolve_a_fft_grid_test(z_grid, v_grid, t_grid, a_grid, l, alpha, s_grid, beta, step(z_grid), i)
+            evolve_a_fft_grid_test(z_grid, v_grid, t_grid, a_grid, l, alpha, P_grid, beta, step(z_grid), i)
 
         end
     end
 
-    return (s_grid, a_grid), (z_grid, t_grid, y_grid)
+    return (P_grid, a_grid), (z_grid, t_grid, y_grid)
 end
