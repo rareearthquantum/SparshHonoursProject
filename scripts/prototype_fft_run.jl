@@ -4,7 +4,9 @@ using DrWatson
 include(srcdir("prototype_fft_schemes.jl"))
 include(srcdir("plotting.jl"))
 
-const frequency = 200e12
+const tera, giga, mega, kilo, centi, milli, micro, nano, pico = 1e12, 1e9, 1e6, 1e3, 1e-2, 1e-3, 1e-6, 1e-9, 1e-12
+
+const frequency = 200tera
 const omega0 = 2.0 * pi * frequency
 const c = 3e8
 const k = omega0 / c
@@ -17,19 +19,19 @@ const Nd = 2 #number of detunings/atoms at each z-site
 const Nt = 32 * 2^4 #number of time steps
 const Ny = 32 * 2^6
 
-const Z_range = (0.0, 10e-2)
-const T_range = (0.0, 1.0e-4)
-const Y_width = 10e-3
+const Z_range = (0.0, 10centi)
+const T_range = (0.0, 100micro)
+const Y_width = 10milli
 const Y_range = (-Y_width / 2, Y_width / 2)
 
 const alpha = 0.0
 const beta = 1 / (2k)
 
 #center,width,area
-const seperation = 40e-6
+const seperation = 40micro
 const pulse_params = [
-    (PulseParams(T_range[2] / 2, 10e-6, 1.0), PulseParams(-seperation / 2, 10e-6, 1.0e-6)),
-    (PulseParams(T_range[2] / 2, 10e-6, 1.0), PulseParams(seperation / 2, 10e-6, 1.0e-6))
+    (PulseParams(T_range[2] / 2, 10micro, 1.0), PulseParams(-seperation / 2, 10micro, 1.0e-6)),
+    (PulseParams(T_range[2] / 2, 10micro, 1.0), PulseParams(seperation / 2, 10micro, 1.0e-6))
 ]
 
 @show "test run"
