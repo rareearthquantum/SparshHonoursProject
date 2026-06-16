@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name=my_test_job
-#SBATCH --output=slurm/outputs/slurm-%j.out
+#SBATCH --output=data/slurm/slurm-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
@@ -11,7 +11,8 @@
 #SBATCH --schandra2021nz@gmail.com
 
 
-
+mkdir -p data/slurm
+mkdir -p plots
 
 echo "Sparsh's job started on $(hostname) at $(date)"
 echo "Working directory: $(pwd)"
