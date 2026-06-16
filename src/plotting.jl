@@ -22,7 +22,7 @@ function plot_a_intensity_vs_y_z(y_grid, z_grid, a_grid; clims=(0.0, 1.0), size=
         size=size)
 end
 
-function plotting_a_intensity(t_grid, y_grid, z_grid, a_grid; clims=(0.0, 1.0), size=(600, 600))
+function plotting_a_intensity(t_grid, y_grid, z_grid, a_grid; clims=(0.0, maximum(abs2.(a_grid))), size=(600, 600))
     default(c=:viridis,
         left_margin=2mm, right_margin=5mm, top_margin=2mm, bottom_margin=2mm,
         clims=clims,

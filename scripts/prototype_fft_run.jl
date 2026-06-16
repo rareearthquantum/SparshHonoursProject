@@ -12,10 +12,10 @@ const k = omega0 / c
 
 #INPUT PARAMS
 
-const Nz = 128 * 2^2  #number of z-sites
+const Nz = 128 * 2^3  #number of z-sites
 const Nd = 2 #number of detunings/atoms at each z-site
-const Nt = 32 * 2^3 #number of time steps
-const Ny = 32 * 2^5
+const Nt = 32 * 2^4 #number of time steps
+const Ny = 32 * 2^6
 
 const Z_range = (0.0, 10e-2)
 const T_range = (0.0, 1.0e-4)
@@ -56,14 +56,15 @@ ifft!(new_a_grid, 3)
 
 
 ##Generate plots
-@time plotting_a_intensity(new_t_grid, new_y_grid, new_z_grid, new_a_grid, clims=(0.0, 1.0e7))
+@time plotting_a_intensity(new_t_grid, new_y_grid, new_z_grid, new_a_grid)
 savefig("plots/test_a_abs2" *
-        "_alpha=" * string(alpha) *
-        "_beta=" * string(beta) *
         "_Nz=" * string(Nz) *
         "_Nd=" * string(Nd) *
         "_Nt=" * string(Nt) *
         "_Ny=" * string(Ny) *
+        "_Zw=" * string(Z_range[2]-Z_range[1]) *
+        "_Tw=" * string(T_range[2]-T_range[1]) *
+        "_Yw=" * string(Y_range[2]-Y_range[1]) *
         ".png")
 
 
