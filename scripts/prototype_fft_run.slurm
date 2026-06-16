@@ -8,8 +8,8 @@
 #SBATCH --mem=16G
 #SBATCH --time=01:00:00
 #SBATCH --partition=aoraki
-#SBATCH --schandra2021nz@gmail.com
-
+#SBATCH --mail-user=schandra2021nz@gmail.com
+#SBATCH --mail-type=END,FAIL
 
 
 

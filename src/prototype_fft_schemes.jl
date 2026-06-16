@@ -8,16 +8,15 @@ include(srcdir("equations.jl"))
 
 
 function initialise_params_test(
-    f::NTuple{2,Function},
+    pulse_params::Array{NTuple{2,PulseParams}},
     N::NTuple{4,Int64},
     B::NTuple{3,NTuple{2,Float64}}
 )
 
-    f_E_t, f_E_y = f
     Nz, Nd, Nt, Ny = N
     (Zi, Zf), (Ti, Tf), (Yi, Yf) = B
 
- 
+
     z_grid = LinRange(Zi, Zf, Nz)
     y_grid = LinRange(Yi, Yf, Ny)
     t_grid = LinRange(Ti, Tf, Nt)
@@ -34,7 +33,7 @@ function initialise_params_test(
     P_grid[:, 1, :] .= zeros(Nz, Ny)
 
     a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
-    a_grid[1, :, :] .= f_E_t.(t_grid) * fftshift(fft(f_E_y.(y_grid)))'
+    a_grid[1, :, :] .= initialise_pulses(t_grid, y_grid, pulse_params)
     @show size(a_grid)
 
     grids = (z_grid, t_grid, d_grid, y_grid, P_grid, a_grid)
@@ -63,20 +62,15 @@ function evolve_a_fft_grid_test(z_grid::LinRange{Float64,Int64},
     i::Int64
 )
 
-    #P = dropdims(sum(s_grid, dims=2), dims=2)
-
     for k in eachindex(t_grid)
         f(iz) = f_a_fft_test!(alpha, P_grid[iz, k, l], factor(z_grid[iz], v_grid[l], beta))
-        a_temp = @view a_grid[:, k, l]
-        stepping_ab_2step!(a_temp, f, dz, i)
+        stepping_ab_2step!(view(a_grid,:,k,l), f, dz, i)
     end
-    #a_grid[i, :, l] .= a_grid[i, :, l] .* factor(z_grid[i], v_grid[l], -beta)
-    #a_grid[i, :, l] .= fftshift(ifft(a_grid[i, :, l]))
 
 end
 
 function evolve_diff_2d_test(
-    f::NTuple{2,Function},
+    pulse_params::Array{NTuple{2,PulseParams}},
     N::NTuple{4,Int64},
     B::NTuple{3,NTuple{2,Float64}},
     p::NTuple{2,Float64}
@@ -85,14 +79,14 @@ function evolve_diff_2d_test(
     (Ti, Tf) = B[2]
     alpha::Float64, beta::Float64 = p
 
-    z_grid, t_grid, d_grid, y_grid, P_grid, a_grid = initialise_params_test(f, N, B)
+    z_grid, t_grid, d_grid, y_grid, P_grid, a_grid = initialise_params_test(pulse_params, N, B)
 
     v_grid::LinRange{Float64,Int64} = fftshift(fftfreq(Ny, 1 / step(y_grid)))
     s0 = zeros(ComplexF64, Nd)
 
-    
+
     for i in eachindex(z_grid)
-        for l in eachindex(y_grid)
+        @inbounds for l in eachindex(y_grid)
 
             #evolving polarisation
             P_grid[i, :, l] .= dropdims(sum(
