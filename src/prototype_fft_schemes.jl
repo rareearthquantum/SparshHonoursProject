@@ -5,6 +5,7 @@ using Interpolations
 include(srcdir("stepping_schemes.jl"))
 include(srcdir("initialise_params.jl"))
 include(srcdir("equations.jl"))
+include(srcdir("input_pulse_methods.jl"))
 
 
 function initialise_params_test(

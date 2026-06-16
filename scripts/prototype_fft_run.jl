@@ -2,7 +2,6 @@ using DrWatson
 @quickactivate "SparshHonoursProject"
 
 include(srcdir("prototype_fft_schemes.jl"))
-include(srcdir("input_pulse_methods.jl"))
 include(srcdir("plotting.jl"))
 
 const frequency = 200e12
