@@ -4,35 +4,31 @@ using DrWatson
 include(srcdir("prototype_fft_schemes.jl"))
 include(srcdir("plotting.jl"))
 
-const tera, giga, mega, kilo, centi, milli, micro, nano, pico = 1e12, 1e9, 1e6, 1e3, 1e-2, 1e-3, 1e-6, 1e-9, 1e-12
-
-const frequency = 200tera
-const omega0 = 2.0 * pi * frequency
-const c = 3e8
-const k = omega0 / c
+include(srcdir("constants.jl"))
 
 
 #INPUT PARAMS
 
-const Nz = 128 * 2^3  #number of z-sites
+const Nz = 128 *2 #number of z-sites
 const Nd = 2 #number of detunings/atoms at each z-site
-const Nt = 32 * 2^4 #number of time steps
-const Ny = 32 * 2^6
+const Nt = 32 * 2^2 #number of time steps
+const Ny = 32 * 2^3
 
-const Z_range = (0.0, 10centi)
-const T_range = (0.0, 100micro)
-const Y_width = 10milli
+const Z_length = 2centi
+const Z_range = (0.0, Z_length)
+const T_range = (0.0, 50micro)
+
+const y_pulse_width = 10micro
+const ZR = 0.5 * (1 / (4 * pi * beta)) * y_pulse_width^2
+const Y_width = y_pulse_width * sqrt(1 + (Z_length / ZR)^2)
 const Y_range = (-Y_width / 2, Y_width / 2)
 
-const alpha = 0.0
-const beta = 1 / (2k)
-
-#center,width,area
 const seperation = 40micro
 const pulse_params = [
-    (PulseParams(T_range[2] / 2, 10micro, 1.0), PulseParams(-seperation / 2, 10micro, 1.0e-6)),
-    (PulseParams(T_range[2] / 2, 10micro, 1.0), PulseParams(seperation / 2, 10micro, 1.0e-6))
+    ((center=T_range[2] / 2, width=10micro, area=1.0), (center=0.0, width=y_pulse_width, area=1.0))
 ]
+
+const alpha = 0.0
 
 @show "test run"
 
@@ -49,7 +45,7 @@ const pulse_params = [
 
 # ifft back
 new_v_grid = fftshift(fftfreq(Ny, 1 / step(new_y_grid)))
-@time for i in eachindex(new_z_grid)
+for i in eachindex(new_z_grid)
     for j in eachindex(new_t_grid)
         new_a_grid[i, j, :] .*= factor.(new_z_grid[i], new_v_grid, -beta)
     end
@@ -58,29 +54,25 @@ ifft!(new_a_grid, 3)
 
 
 ##Generate plots
-@time plotting_a_intensity(new_t_grid, new_y_grid, new_z_grid, new_a_grid)
+h_numeric = heatmap_myway(new_y_grid, new_z_grid, abs2.(new_a_grid[:, end÷2, :]), xlabel="y", ylabel="z", hlabel="Electric field envelope intensity", size=(800, 1000))
 savefig("plots/test_a_abs2" *
         "_Nz=" * string(Nz) *
         "_Nd=" * string(Nd) *
         "_Nt=" * string(Nt) *
         "_Ny=" * string(Ny) *
-        "_Zw=" * string(Z_range[2]-Z_range[1]) *
-        "_Tw=" * string(T_range[2]-T_range[1]) *
-        "_Yw=" * string(Y_range[2]-Y_range[1]) *
+        "_Zw=" * string(Z_range[2] - Z_range[1]) *
+        "_Tw=" * string(T_range[2] - T_range[1]) *
+        "_Yw=" * string(Y_range[2] - Y_range[1]) *
         ".png")
 
-
-
-
-
-#=
-For soon:
-- y pulse width needs to be 10 microns, so 10^-6 m
-- In time its 10 microseconds, 10^-6 s
-- For that I need to be able to input pulse parameters
-- Also to get two 10 micron pulses in y seperated by 40 microns
-- 10cm propagation in z
-- also make analytic plots of everything so far, so: attenuation in 1 spatial dimension, 2 spatial dimensions, diffraction
-- also only store P(y,z,t) and evolve single sigma minus for fixed y=y' and z=z', adding the resulting 1 vector to P(y',z',t) for all detunings at y',z'
-
-=#
+analytic_width = z -> sqrt(y_pulse_width^2 + im * 0.2 * pi^2 * beta * z)
+analytic_pulse_params = z -> ((center=(T_range[2] - T_range[1]) / 2, width=10micro, area=1.0), (center=0.0, width=analytic_width(z), area=1.0))
+analytic_function = z -> pulse.(new_t_grid, analytic_pulse_params(z)[1]...) .* pulse.(new_y_grid, analytic_pulse_params(z)[2]...)'
+analytic_grid = Array{Complex}(undef, Nz, Nt, Ny)
+for i in eachindex(new_z_grid)
+    analytic_grid[i, :, :] .= analytic_function(new_z_grid[i])
+end
+lineplots = plot(new_y_grid, abs2.(analytic_grid[end, end÷2, :]), c=:red, label="analytic", title="Envelope intensity at exit face")
+plot!(new_y_grid, abs2.(new_a_grid[end, end÷2, :]), c=:blue, label="numeric")
+h_analytic = heatmap_myway(new_y_grid, new_z_grid, abs2.(analytic_grid[:, end÷2, :]), xlabel="y", ylabel="z", hlabel="Analytic envelope intensity")
+plot(h_analytic, h_numeric, lineplots, layout=(3, 1))

@@ -2,17 +2,10 @@ function s_evolve!(du, u, p, t)
 
     d, a_interp = p
 
-    du .= im .* d .* u + im .* a_interp(t) .* ones(length(d))
+    du .= im .* d .* u .+ im .* a_interp(t) 
 end
 
-function s_evolve_single!(du, u, p, t)
-
-    detuning, a_interp = p
-
-    du .= im * detuning * u + im * a_interp(t)
-end
-
-function f_a_2d!(alpha::Float64, s_grid::AbstractArray, beta::Float64, dy2::ComplexF64)
+function f_a_2d!(alpha::Real, s_grid::AbstractArray, beta::Real, dy2::Complex)
     im * (alpha * sum(s_grid) + beta * dy2)
 end
 

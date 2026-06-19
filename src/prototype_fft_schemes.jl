@@ -9,7 +9,7 @@ include(srcdir("input_pulse_methods.jl"))
 
 
 function initialise_params_test(
-    pulse_params::Array{NTuple{2,PulseParams}},
+    pulse_params,
     N::NTuple{4,Int64},
     B::NTuple{3,NTuple{2,Float64}}
 )
@@ -35,6 +35,7 @@ function initialise_params_test(
 
     a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
     a_grid[1, :, :] .= initialise_pulses(t_grid, y_grid, pulse_params)
+    a_grid[1,:,:] .= fftshift(fft(a_grid[1,:,:],2),2)
     @show size(a_grid)
 
     grids = (z_grid, t_grid, d_grid, y_grid, P_grid, a_grid)
@@ -51,54 +52,67 @@ function factor(z, v, beta)
     return exp(im * beta * 4 * pi^2 * v^2 * z)
 end
 
-function evolve_a_fft_grid_test(z_grid::LinRange{Float64,Int64},
-    v_grid::LinRange{Float64,Int64},
-    t_grid::LinRange{Float64,Int64},
-    a_grid::Array{ComplexF64},
-    l::Int64,
-    alpha::Float64,
-    P_grid::Array{ComplexF64},
-    beta::Float64,
-    dz::Float64,
-    i::Int64
+function factor_grid(z_grid, v_grid, beta)
+    return exp.(im .* beta .* 4 .* pi^2 .* v_grid' .^ 2 .* z_grid)
+end
+
+function evolve_a_fft_grid_test(t_grid::AbstractVector,
+    a_grid::AbstractArray,
+    l::Int,
+    alpha::Real,
+    P_grid::AbstractArray,
+    dz::Real,
+    i::Int,
+    phasefactor_grid::AbstractArray
 )
 
     for k in eachindex(t_grid)
-        f(iz) = f_a_fft_test!(alpha, P_grid[iz, k, l], factor(z_grid[iz], v_grid[l], beta))
-        stepping_ab_2step!(view(a_grid,:,k,l), f, dz, i)
+        f(iz) = f_a_fft_test!(alpha, P_grid[iz, k, l], phasefactor_grid[iz, l])
+        stepping_ab_2step!(view(a_grid, :, k, l), f, dz, i)
     end
 
 end
 
 function evolve_diff_2d_test(
-    pulse_params::Array{NTuple{2,PulseParams}},
+    pulse_params::AbstractArray,
     N::NTuple{4,Int64},
     B::NTuple{3,NTuple{2,Float64}},
     p::NTuple{2,Float64}
 )
 
     (Ti, Tf) = B[2]
-    alpha::Float64, beta::Float64 = p
+    alpha::Real, beta::Real = p
 
     z_grid, t_grid, d_grid, y_grid, P_grid, a_grid = initialise_params_test(pulse_params, N, B)
 
-    v_grid::LinRange{Float64,Int64} = fftshift(fftfreq(Ny, 1 / step(y_grid)))
+    v_grid::LinRange{Float64,Int64} = fftshift(fftfreq(length(y_grid), 1 / step(y_grid)))
+    phasefactor_grid = factor_grid(z_grid, v_grid, beta)
     s0 = zeros(ComplexF64, Nd)
 
+    a_interp_grid = Array{AbstractInterpolation}(undef, Nz, Ny)
+    for i in eachindex(z_grid)
+        for l in eachindex(y_grid)
+            a_interp_grid[i, l] = LinearInterpolation(t_grid, a_grid[i, :, l])
+        end
+    end
+
+    initial_p = (d_grid[1, :, 1], a_interp_grid[1, 1])
+    prob = ODEProblem(s_evolve!, s0, (Ti, Tf), initial_p)
+    integrator = init(prob, Tsit5(), reltol=1e-3, abstol=1e-6, saveat=t_grid)
 
     for i in eachindex(z_grid)
-        @inbounds for l in eachindex(y_grid)
+        for l in eachindex(y_grid)
+
+            new_p = (d_grid[i, :, l], a_interp_grid[i, l])
+            integrator.p = new_p
+            reinit!(integrator, s0)
+            solve!(integrator)
 
             #evolving polarisation
-            P_grid[i, :, l] .= dropdims(sum(
-                    solve(
-                        ODEProblem(s_evolve!, s0, (Ti, Tf), (d_grid[i, :, l], LinearInterpolation(t_grid, a_grid[i, :, l]))),
-                        Tsit5(), reltol=1e-3, abstol=1e-6, saveat=t_grid),
-                    dims=1), dims=1)
-
+            P_grid[i, :, l] .= dropdims(sum(integrator.sol, dims=1), dims=1)
 
             #evolving electric field
-            evolve_a_fft_grid_test(z_grid, v_grid, t_grid, a_grid, l, alpha, P_grid, beta, step(z_grid), i)
+            evolve_a_fft_grid_test(t_grid, a_grid, l, alpha, P_grid, step(z_grid), i, phasefactor_grid)
 
         end
     end
