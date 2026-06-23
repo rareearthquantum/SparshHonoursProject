@@ -6,6 +6,6 @@ function s_evolve!(du, u, p, t)
 end
 
 function f_a_2d!(alpha::Real, s_grid::AbstractArray, beta::Real, dy2::Complex)
-    im * (alpha * sum(s_grid) + beta * dy2)
+    im * (1/(2pi)) * (alpha * sum(s_grid) + beta * dy2)
 end
 

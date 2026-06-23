@@ -28,7 +28,7 @@ function stepping_ab_3step!(v::AbstractArray, f::Function, h::Float64, i::Int64)
     end
 end
 
-function stepping_ab_2step!(v::AbstractArray, f::Function, h::Float64, i::Int64)
+function stepping_ab_2step!(v::AbstractArray, f::Function, h::Real, i::Int)
     (i >= length(v)) && return
     if (i >= 2)
         adams_bashforth_2step!(v, f, h, i)

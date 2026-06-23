@@ -1,14 +1,14 @@
-function euler_step!(v, f, h, i)
+function euler_step!(v::AbstractArray, f::Function, h::Real, i::Int)
     v[i+1] = v[i] + h * f(i)
 end
 
 function adams_bashforth_2step!(
     v::AbstractArray,
     f::Function,
-    h::Float64,
-    i::Int64
+    h::Real,
+    i::Int
 )
-    v[i+1] = v[i] + (h / 2) * (3 * f(i) - f(i - 1))
+    v[i+1] = v[i] + (h / 2) * (3f(i) - f(i - 1))
 end
 
 function adams_bashforth_3step!(
