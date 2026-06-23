@@ -1,0 +1,27 @@
+name = "dimensionless_single_pulse"
+mode = "dimensionless"
+
+[grid]
+Nz = 128
+Nd = 64
+Nt = 64
+Ny = 64
+
+[domain]
+z = [0.0, 1.0]
+t = [0.0, 5.0]
+y = [-5.0, 5.0]
+
+[model]
+# Effective dimensionless light--matter coupling and diffraction strength.
+alpha = 0.1
+beta = 0.02
+
+[[pulses]]
+time_center = 2.5
+time_width = 1.0
+time_area = 1.0
+y_center = 0.0
+y_width = 1.0
+# sqrt(2*pi)*width gives the spatial Gaussian unit peak amplitude.
+y_area = 2.5066282746310002

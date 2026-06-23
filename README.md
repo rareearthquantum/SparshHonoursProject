@@ -77,3 +77,34 @@ And to rerun:
 ```
 julia> include("scripts/run.jl")
 ```
+
+### Prototype configurations
+
+The FFT prototype reads a TOML configuration. With no argument it uses the
+dimensionless single-pulse configuration:
+
+```text
+julia --project=. scripts/prototype_fft_run.jl
+```
+
+Pass the physical SI configuration explicitly with:
+
+```text
+julia --project=. scripts/prototype_fft_run.jl scripts/input_params_2_10micron_y_pulses_40micron_seperation.toml
+```
+
+TOML files contain data only: expressions such as `10micro`, `128 * 2`, and
+Julia tuples are not valid TOML. The physical configuration therefore uses
+plain SI values with unit suffixes such as `_m`, `_s`, and `_hz_per_m`.
+
+The numerical kernel is always dimensionless. For reference scales `Z0`, `T0`
+and `Y0`, the loader uses
+
+```text
+alpha = coupling_hz_per_m * Z0 * T0
+beta  = (1 / (2k)) * Z0 / Y0^2
+```
+
+and converts all domains and pulse parameters by the same scales. This keeps
+units out of the FFT and integration kernels while restoring SI coordinates on
+physical-mode plot axes.

@@ -1,15 +1,45 @@
-Nz = 128 * 2^3  #number of z-sites
-Nd = 2
-Nt = 32 * 2^4
-Ny = 32 * 2^6
+name = "physical_two_10um_pulses_40um_separation"
+mode = "physical_si"
 
-Z_range = (0.0, 10centi)
-T_range = (0.0, 100micro)
-Y_width = 10milli
-Y_range = (-Y_width / 2, Y_width / 2)
+[grid]
+Nz = 128
+Nd = 64
+Nt = 128
+Ny = 128
 
-seperation = 40micro
-pulse_params = [
-    ((center=T_range[2] / 2, width=10micro, area=1.0), (center=-seperation / 2, width=10micro, area=1.0e-6)),
-    ((center=T_range[2] / 2, width=10micro, area=1.0), (center=seperation / 2, width=10micro, area=1.0e-6))
-]
+[scales]
+# SI reference scales used to nondimensionalize the numerical problem.
+z_m = 2.0e-3
+time_s = 10.0e-6
+y_m = 10.0e-6
+
+[domain]
+# TOML does not evaluate Julia expressions, so physical values are stored as
+# plain SI numbers and identified by their key suffixes.
+z_m = [0.0, 2.0e-3]
+t_s = [0.0, 50.0e-6]
+y_m = [-50.0e-6, 50.0e-6]
+
+[model]
+carrier_frequency_hz = 200.0e12
+# Effective coefficient multiplying the coherence, in s^-1 m^-1. This already
+# includes density, dipole moment and hbar. The solver uses a normalized uniform
+# detuning distribution, so changing Nd does not change this coefficient.
+# With the scales above it gives dimensionless alpha = 0.1.
+coupling_hz_per_m = 5.0e6
+
+[[pulses]]
+time_center_s = 25.0e-6
+time_width_s = 10.0e-6
+time_area_rad = 1.0
+y_center_m = -20.0e-6
+y_width_m = 10.0e-6
+y_area_m = 10.0e-6
+
+[[pulses]]
+time_center_s = 25.0e-6
+time_width_s = 10.0e-6
+time_area_rad = 1.0
+y_center_m = 20.0e-6
+y_width_m = 10.0e-6
+y_area_m = 10.0e-6
