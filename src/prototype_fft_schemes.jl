@@ -1,6 +1,4 @@
-using OrdinaryDiffEq
 using FFTW
-using Interpolations
 
 include(srcdir("stepping_schemes.jl"))
 include(srcdir("initialise_params.jl"))
@@ -31,11 +29,11 @@ function initialise_params_test(
     end
 
     P_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
-    P_grid[:, 1, :] .= zeros(Nz, Ny)
+    P_grid[:, 1, :] .= zeros(Complex, Nz, Ny)
 
     a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
     a_grid[1, :, :] .= initialise_pulses(t_grid, y_grid, pulse_params)
-    a_grid[1,:,:] .= fftshift(fft(a_grid[1,:,:],2),2)
+    a_grid[1, :, :] .= fftshift(fft(a_grid[1, :, :], 2), 2)
     @show size(a_grid)
 
     grids = (z_grid, t_grid, d_grid, y_grid, P_grid, a_grid)
@@ -73,6 +71,50 @@ function evolve_a_fft_grid_test(t_grid::AbstractVector,
 
 end
 
+
+function evolve_polarisation_rk4!(
+    P::AbstractVector,
+    d::AbstractVector,
+    a::AbstractVector,
+    dt::Real
+)
+    length(P) == length(a) || throw(DimensionMismatch("P and a must have the same length"))
+    length(P) > 0 || return P
+
+
+    s = zeros(ComplexF64, length(d))
+    k1 = similar(s)
+    k2 = similar(s)
+    k3 = similar(s)
+    k4 = similar(s)
+
+    d_width = d[end]-d[begin]
+    d_step = d_width / length(d)
+    weights = ones(Real, Nd) ./ d_width
+
+    for j in 1:(length(a)-1)
+        # RK4 evaluates the forcing at the half step.  The adjacent field
+        # samples give its second-order midpoint value without an interpolator.
+        a_mid = (a[j] + a[j+1]) / 2
+
+        @. k1 = im * (d * s + a[j])
+        @. k2 = im * (d * (s + (dt / 2) * k1) + a_mid)
+        @. k3 = im * (d * (s + (dt / 2) * k2) + a_mid)
+        @. k4 = im * (d * (s + dt * k3) + a[j+1])
+        @. s += (dt / 6) * (k1 + 2k2 + 2k3 + k4)
+
+        # Uniform normalized detuning distribution. This keeps the physical
+        # coupling independent of the numerical detuning-grid size Nd.
+        P[j+1] = sum(weights .* s) * d_step
+    end
+
+    return P
+end
+
+
+
+
+
 function evolve_diff_2d_test(
     pulse_params::AbstractArray,
     N::NTuple{4,Int64},
@@ -80,38 +122,24 @@ function evolve_diff_2d_test(
     p::NTuple{2,Float64}
 )
 
-    (Ti, Tf) = B[2]
     alpha::Real, beta::Real = p
 
     z_grid, t_grid, d_grid, y_grid, P_grid, a_grid = initialise_params_test(pulse_params, N, B)
 
     v_grid::LinRange{Float64,Int64} = fftshift(fftfreq(length(y_grid), 1 / step(y_grid)))
     phasefactor_grid = factor_grid(z_grid, v_grid, beta)
-    s0 = zeros(ComplexF64, Nd)
 
-    a_interp_grid = Array{AbstractInterpolation}(undef, Nz, Ny)
-    for i in eachindex(z_grid)
-        for l in eachindex(y_grid)
-            a_interp_grid[i, l] = LinearInterpolation(t_grid, a_grid[i, :, l])
-        end
-    end
-
-    initial_p = (d_grid[1, :, 1], a_interp_grid[1, 1])
-    prob = ODEProblem(s_evolve!, s0, (Ti, Tf), initial_p)
-    integrator = init(prob, Tsit5(), reltol=1e-3, abstol=1e-6, saveat=t_grid)
 
     for i in eachindex(z_grid)
         for l in eachindex(y_grid)
 
-            new_p = (d_grid[i, :, l], a_interp_grid[i, l])
-            integrator.p = new_p
-            reinit!(integrator, s0)
-            solve!(integrator)
+            evolve_polarisation_rk4!(
+                view(P_grid, i, :, l),
+                view(d_grid, i, :, l),
+                view(a_grid, i, :, l),
+                step(t_grid)
+            )
 
-            #evolving polarisation
-            P_grid[i, :, l] .= dropdims(sum(integrator.sol, dims=1), dims=1)
-
-            #evolving electric field
             evolve_a_fft_grid_test(t_grid, a_grid, l, alpha, P_grid, step(z_grid), i, phasefactor_grid)
 
         end

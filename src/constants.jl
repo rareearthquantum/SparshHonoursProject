@@ -7,4 +7,6 @@ const k = omega0 / c
 const mu0 = 1.25663706e-6
 
 const beta = 1/(2k)
-const alpha = mu0*omega0*c/2
+@show beta
+const alpha = mu0*omega0/2
+@show alpha
