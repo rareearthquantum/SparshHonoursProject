@@ -8,5 +8,5 @@ const mu0 = 1.25663706e-6
 
 const beta = 1/(2k)
 @show beta
-const alpha = mu0*omega0/2
+const alpha = 0.0 #mu0*omega0/2
 @show alpha

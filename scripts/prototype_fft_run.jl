@@ -9,17 +9,17 @@ include(srcdir("constants.jl"))
 #INPUT PARAMS
 
 const Nz = 64 #number of z-sites
-const Nd = 64 #number of detunings/atoms at each z-site
-const Nt = 64 #number of time steps
-const Ny = 64
+const Nd = 64  #number of detunings/atoms at each z-site
+const Nt = 64  #number of time steps
+const Ny = 64 *2 
 
 const Z_length = 2milli
 const Z_range = (0.0, Z_length)
 const T_range = (0.0, 50micro)
 
 const y_pulse_width = 10micro
-const ZR = 0.25 * k * y_pulse_width^2
-const Y_width = y_pulse_width * sqrt(1 + (Z_length / ZR)^2)
+const ZR = 0.5 * k * y_pulse_width^2
+const Y_width = real(sqrt(y_pulse_width^2 + im * 2 * beta * Z_length))
 const Y_range = (-Y_width / 2, Y_width / 2)
 
 const seperation = 40micro
@@ -63,7 +63,7 @@ savefig("plots/test_a_abs2" *
         "_Yw=" * string(Y_range[2] - Y_range[1]) *
         ".png")
 
-analytic_width = z -> sqrt(y_pulse_width^2 + im * 0.201 * pi^2 * beta * z)
+analytic_width = z -> sqrt(y_pulse_width^2 + im * 2 * beta * z)
 analytic_pulse_params = z -> ((center=(T_range[2] - T_range[1]) / 2, width=10micro, area=1.0), (center=0.0, width=analytic_width(z), area=1.0))
 analytic_function = z -> pulse.(new_t_grid, analytic_pulse_params(z)[1]...) .* pulse.(new_y_grid, analytic_pulse_params(z)[2]...)'
 

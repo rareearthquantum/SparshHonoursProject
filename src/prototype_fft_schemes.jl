@@ -71,7 +71,6 @@ function evolve_a_fft_grid_test(t_grid::AbstractVector,
 
 end
 
-
 function evolve_polarisation_rk4!(
     P::AbstractVector,
     d::AbstractVector,
@@ -113,8 +112,6 @@ end
 
 
 
-
-
 function evolve_diff_2d_test(
     pulse_params::AbstractArray,
     N::NTuple{4,Int64},
@@ -131,7 +128,7 @@ function evolve_diff_2d_test(
 
 
     for i in eachindex(z_grid)
-        for l in eachindex(y_grid)
+        Threads.@threads for l in eachindex(y_grid)
 
             evolve_polarisation_rk4!(
                 view(P_grid, i, :, l),

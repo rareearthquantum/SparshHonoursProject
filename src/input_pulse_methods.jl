@@ -49,3 +49,17 @@ function initialise_pulses(t_grid, y_grid, pulse_params)
     end
     return pulses
 end
+
+
+
+function step_function(u,u0)
+    return u >= u0 ? 1 : 0
+end
+
+function flat_pulse(u,ui,uf)
+    return step_function(u,ui)*step_function(-u,-uf)
+end
+
+function flat_pulse(u,ui,length, area)
+    return area*step_function(u,ui)*step_function(-u,-(ui+length))
+end
