@@ -39,7 +39,6 @@ const pulse_params = [
         (alpha, beta)
     )
 
-
 # ifft back
 new_v_grid = fftshift(fftfreq(Ny, 1 / step(new_y_grid)))
 for i in eachindex(new_z_grid)

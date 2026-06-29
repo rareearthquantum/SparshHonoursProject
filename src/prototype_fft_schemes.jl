@@ -1,4 +1,6 @@
 using FFTW
+using Interpolations
+using OrdinaryDiffEqLowOrderRK
 
 include(srcdir("stepping_schemes.jl"))
 include(srcdir("initialise_params.jl"))
@@ -128,7 +130,7 @@ function evolve_diff_2d_test(
 
 
     for i in eachindex(z_grid)
-        Threads.@threads for l in eachindex(y_grid)
+        for l in eachindex(y_grid)
 
             evolve_polarisation_rk4!(
                 view(P_grid, i, :, l),
