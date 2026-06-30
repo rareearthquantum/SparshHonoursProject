@@ -37,8 +37,8 @@ function rk4!(f, u, t_vec, p)
     end
 end
 
-Nd = 100
-d_width = 10.0
+Nd = 500
+d_width = 1000.0
 detunings = LinRange(-d_width/2, d_width, Nd)
 
 Nt = 1000
@@ -54,7 +54,7 @@ end
 
 Omega(t) = pulse(t, t_width/10, t_width/100, pi/2) + pulse(t, 3t_width/10, t_width/100, pi)
 
-@time for i in 1:Nd
+@time Threads.@threads for i in 1:Nd
     @views rk4!(atom, rho[:, :, i], time_vec, (detunings[i], Omega))
 end
 
@@ -90,7 +90,7 @@ for i in 1:Nd
     rho_2[:, 1, i] = [0.0+0.0im, -1.0]
 end
 
-@time for i in 1:Nd
+@time Threads.@threads for i in 1:Nd
     @views rk4!(atom_2, rho_2[:, :, i], time_vec, (detunings[i], Omega))
 end
 

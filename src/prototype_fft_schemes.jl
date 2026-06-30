@@ -1,6 +1,6 @@
 using FFTW
-using Interpolations
-using OrdinaryDiffEqLowOrderRK
+#using Interpolations
+#using OrdinaryDiffEqLowOrderRK
 
 include(srcdir("stepping_schemes.jl"))
 include(srcdir("initialise_params.jl"))

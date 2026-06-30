@@ -9,10 +9,11 @@ include(srcdir("input_pulse_methods.jl"))
 function atom_rotate(u, t, p)
 
     detuning, Omega = p
+    u[1] = u[1]
 
     return [
         -0.5*im*Omega(t)*u[2]*exp(im*detuning*t),
-        im*Omega(t)*conj(u[1]) - im*conj(Omega(t))*u[1]
+        im*Omega(t)*conj(u[1])*exp(im*detuning*t) - im*conj(Omega(t))*u[1]*exp(-im*detuning*t)
     ]
 end
 
@@ -37,11 +38,11 @@ function rk4!(f, u, t_vec, p)
 end
 
 #PARAMS
-Nd = 100
-d_width = 1.0
+Nd = 4000
+d_width = 1000.0
 detunings = LinRange(-d_width/2, d_width, Nd)
 
-Nt = 1000
+Nt = 2000
 Ti = 0.0
 Tf = 10.0
 time_vec = LinRange(Ti, Tf, Nt)
@@ -67,6 +68,7 @@ end
 for i in 1:Nt
     for j in 1:Nd
         rho[1, i, j] = rho[1, i, j]*exp(-im*detunings[j]*time_vec[i])
+        #rho[2, i, j] = rho[2, i, j]*exp(-im*detunings[j]*time_vec[i])
     end
 end
 
@@ -79,4 +81,4 @@ plot_abs2 = plot(time_vec, abs2.(polarisation), title="abs2 of polarisation")
 plot_real = plot(time_vec, real.(polarisation), title="real part of polarisation")
 plot_imag = plot(time_vec, imag.(polarisation), title="imaginary part of polarisation")
 plot_sigmaz = plot(time_vec, real.(sum_sigma_z), title="normalised sums of sigma z")
-plot(plot_abs2, plot_real, plot_imag, plot_sigmaz, ylims=(-1.1,1.1), size=(500, 800), layout=(4, 1))
+plot(plot_abs2, plot_real, plot_imag, plot_sigmaz, size=(500, 800), layout=(4, 1))
