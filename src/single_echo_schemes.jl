@@ -37,9 +37,9 @@ function rk4!(f, u, t_vec, p)
     end
 end
 
-Nd = 500
-d_width = 1000.0
-detunings = LinRange(-d_width/2, d_width, Nd)
+Nd = 100
+d_width = 10.0
+detunings = LinRange(-d_width/2, d_width/2, Nd)
 
 Nt = 1000
 Ti = 0.0
@@ -101,68 +101,4 @@ plot_abs2_2 = plot(time_vec, abs2.(polarisation_2), title="abs2 of polarisation"
 plot_real_2 = plot(time_vec, real.(polarisation_2), title="real part of polarisation")
 plot_imag_2 = plot(time_vec, imag.(polarisation_2), title="imaginary part of polarisation")
 plot_sigmaz_2 = plot(time_vec, real.(sum_sigma_z_2), title="normalised sums of sigma z")
-plot(plot_abs2, plot_abs2_2, plot_real, plot_real_2, plot_imag, plot_imag_2, plot_sigmaz, plot_sigmaz_2, ylims=(-1.1, 1.1), size=(1000, 1000), layout=(4, 2))
-
-
-#=
-
-#=
-function atom_vec(u, t, p)
-
-    detunings, kappa, E = p
-    Nd = length(detunings)
-
-    return vcat(
-        -detunings .* u[(Nd+1):2Nd],
-        detunings .* u[1:Nd] .+ kappa * E(t) .* u[(2Nd+1):3Nd],
-        -kappa * E(t) .* u[(Nd+1):2Nd]
-    )
-end
-=#
-
-function atom_vec!(du, u, t, p)
-
-    detunings, kappa, E = p
-    Nd = length(detunings)
-
-    @. du[1:Nd] = -detunings * u[(Nd+1):2Nd]
-    @. du[(Nd+1):2Nd] = detunings * u[1:Nd] + kappa * E(t) * u[(2Nd+1):3Nd]
-    @. du[(2Nd+1):3Nd] = -kappa * E(t) * u[(Nd+1):2Nd]
-end
-
-function rk4_step!(f!, du, u, t, dt, p, k)
-    k1, k2, k3, k4 = k
-
-    f!(k1, u, t, p)
-    f!(k2, u + dt/2 * k1, t + dt/2, p)
-    f!(k3, u + dt/2 * k2, t + dt/2, p)
-    f!(k4, u + dt * k3, t + dt, p)
-
-    @. du = (dt/6) * (k1 + 2k2 + 2k3 + k4)
-end
-
-function rk4_again!(f, u, t_vec, p)
-    k1 = similar(u[:, 1])
-    k2, k3, k4 = similar(k1), similar(k1), similar(k1)
-    dt = step(t_vec)
-    @inbounds for i in 1:(length(t_vec)-1)
-        @views rk4_step!(f, u[:, i+1], u[:, i], t_vec[i], dt, p, (k1, k2, k3, k4))
-    end
-end
-
-
-rho_again = Array{ComplexF64}(undef, 3Nd, Nt)
-rho_again[1:Nd, 1] .= 0.0
-rho_again[(Nd+1):2Nd, 1] .= 0.0
-rho_again[(2Nd+1):3Nd, 1] .= -1.0
-
-@time rk4_again!(atom_vec!, rho_again, time_vec, (detunings, kappa, E2))
-
-sigma_minus_again = rho_again[1:Nd, :] + im .* rho_again[(Nd+1):2Nd, :]
-@show size(sigma_minus_again)
-polarisation_again = (1/Nd) .* vec(sum(sigma_minus_again, dims=1))
-
-plot_abs2_again = plot(time_vec, abs2.(polarisation_again), title="abs2 of polarisation")
-plot(plot_abs2_again, size=(1000, 600))
-
-=#
+plot(plot_abs2, plot_abs2_2, plot_real, plot_real_2, plot_imag, plot_imag_2, plot_sigmaz, plot_sigmaz_2, size=(1000, 1000), layout=(4, 2))

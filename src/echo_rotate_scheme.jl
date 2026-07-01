@@ -9,11 +9,10 @@ include(srcdir("input_pulse_methods.jl"))
 function atom_rotate(u, t, p)
 
     detuning, Omega = p
-    u[1] = u[1]
 
     return [
         -0.5*im*Omega(t)*u[2]*exp(im*detuning*t),
-        im*Omega(t)*conj(u[1])*exp(im*detuning*t) - im*conj(Omega(t))*u[1]*exp(-im*detuning*t)
+        2*imag(conj(Omega(t))*u[1]*exp(-im*detuning*t))
     ]
 end
 
@@ -38,11 +37,11 @@ function rk4!(f, u, t_vec, p)
 end
 
 #PARAMS
-Nd = 4000
-d_width = 1000.0
-detunings = LinRange(-d_width/2, d_width, Nd)
+Nd = 100
+d_width = 10.0
+detunings = LinRange(-d_width/2, d_width/2, Nd)
 
-Nt = 2000
+Nt = 1000
 Ti = 0.0
 Tf = 10.0
 time_vec = LinRange(Ti, Tf, Nt)
@@ -60,7 +59,7 @@ Omega(t) = pulse(t, t_width/10, t_width/100, pi/2) + pulse(t, 3t_width/10, t_wid
 
 
 #SOLVE
-@time Threads.@threads for i in 1:Nd
+@time for i in 1:Nd
     @views rk4!(atom_rotate, rho[:, :, i], time_vec, (detunings[i], Omega))
 end
 
