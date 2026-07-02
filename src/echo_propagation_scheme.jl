@@ -207,7 +207,6 @@ plot_P_real = plot(time_vec, real.(P[:, end÷2]), title="real(P) halfway through
 plot_P_imag = plot(time_vec, imag.(P[:, end÷2]), title="imag(P) halfway through crystal")
 big_heatie = plot(heatmap_P_abs2, heatmap_P_real, heatmap_P_imag, heatmap_Omega_abs2, heatmap_Omega_real, heatmap_Omega_imag, plot_P_abs2, plot_P_real, plot_P_imag, size=(1400, 1000), layout=(3, 3))
 display(big_heatie)
-sleep(5)
 
 #=
 #animation not very nice since we are still in the speed of light frame
