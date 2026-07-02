@@ -5,16 +5,7 @@ using LinearAlgebra, Plots, LinearInterpolations
 include(srcdir("input_pulse_methods.jl"))
 
 
-#FUNCTIONS
-function atom!(ds, s, t, p)
 
-    detunings, Nd, Omega = p
-
-    @. ds[1:Nd] = -0.5*im*Omega(t)*s[(Nd+1):2Nd]*exp(im*detunings*t)
-    @. ds[(Nd+1):2Nd] = 2*imag(conj(Omega(t))*s[1:Nd]*exp(-im*detunings*t))
-
-    return nothing
-end
 
 function atom_single!(ds, s, t, p)
     detuning, Omega, rotate_vec, index, time_vec = p
@@ -25,77 +16,6 @@ function atom_single!(ds, s, t, p)
 
     return nothing
 end
-
-function rk4_step!(f, uf, ui, t, dt, p, k)
-    k1, k2, k3, k4 = k
-
-    f(k1, ui, t, p)
-    f(k2, ui + dt/2 * k1, t + dt/2, p)
-    f(k3, ui + dt/2 * k2, t + dt/2, p)
-    f(k4, ui + dt * k3, t + dt, p)
-
-    @. uf = ui + (dt/6) * (k1 + 2k2 + 2k3 + k4)
-
-    return nothing
-end
-
-function rk4!(f, u, t_vec, p)
-    k1 = similar(u[:, 1])
-    k2, k3, k4 = similar(k1), similar(k1), similar(k1)
-    dt = step(t_vec)
-    @inbounds for i in 1:(length(t_vec)-1)
-        @views rk4_step!(f, u[:, i+1], u[:, i], t_vec[i], dt, p, (k1, k2, k3, k4))
-    end
-
-    return nothing
-end
-
-
-
-#PARAMS
-Nd = 100
-d_width = 10.0
-detunings = LinRange(-d_width/2, d_width/2, Nd)
-
-Nt = 1000
-Ti = 0.0
-Tf = 10.0
-time_vec = LinRange(Ti, Tf, Nt)
-
-t_width = Tf - Ti
-
-#INTIALISE
-rho = Array{ComplexF64}(undef, 2Nd, Nt)
-rho[1:Nd, 1] .= 0.0+0.0im
-rho[(Nd+1):2Nd, 1] .= -1.0
-
-#PULSE WITH PARAMS
-Omega_input(t) = pulse(t, t_width/10, t_width/100, pi/2) + pulse(t, 3t_width/10, t_width/100, pi)
-
-
-#SOLVE
-@time @views rk4!(atom!, rho, time_vec, (detunings, length(detunings), Omega_input))
-
-
-#unrotate
-for i in 1:Nt
-    @. rho[1:Nd, i] *= exp(-im*detunings*time_vec[i])
-end
-
-#SUM AND INTERPRET
-polarisation = (1/Nd) .* vec(sum(rho[1:Nd, :], dims=1))
-sum_sigma_z = (1/Nd) .* vec(sum(rho[(Nd+1):2Nd, :], dims=1))
-
-#PLOT
-plot_abs2 = plot(time_vec, abs2.(polarisation), title="abs2 of polarisation")
-plot_real = plot(time_vec, real.(polarisation), title="real part of polarisation")
-plot_imag = plot(time_vec, imag.(polarisation), title="imaginary part of polarisation")
-plot_sigmaz = plot(time_vec, real.(sum_sigma_z), title="normalised sums of sigma z")
-plot(plot_abs2, plot_real, plot_imag, plot_sigmaz, size=(500, 800), layout=(4, 1))
-sleep(2)
-
-
-
 
 function field!(dOmega, Omega, z, p)
     alpha, P = p
@@ -202,6 +122,17 @@ function time_index_grabber(t, t_vec)::Int64
     return (t-Ti)÷step(t_vec)+1
 end
 
+Nd = 100
+d_width = 10.0
+detunings = LinRange(-d_width/2, d_width/2, Nd)
+
+Nt = 1000
+Ti = 0.0
+Tf = 10.0
+time_vec = LinRange(Ti, Tf, Nt)
+
+t_width = Tf - Ti
+
 Nz = 100
 Zi = 0.0
 Zf = 10.0
@@ -209,6 +140,7 @@ z_vec = LinRange(Zi, Zf, Nz)
 dz = step(z_vec)
 
 Omega = zeros(ComplexF64, Nt, Nz)
+Omega_input(t) = pulse(t, 3t_width/10, t_width/10, 4pi)
 Omega[:, 1] = Omega_input.(time_vec)
 
 P = zeros(ComplexF64, Nt, Nz)
@@ -273,10 +205,11 @@ heatmap_Omega_imag = heatmap(time_vec, z_vec, imag.(Omega[:, :]'), title="imagin
 plot_P_abs2 = plot(time_vec, abs2.(P[:, end÷2]), title="abs2(P) halfway through crystal")
 plot_P_real = plot(time_vec, real.(P[:, end÷2]), title="real(P) halfway through crystal")
 plot_P_imag = plot(time_vec, imag.(P[:, end÷2]), title="imag(P) halfway through crystal")
-big_heatie = plot(heatmap_P_abs2, heatmap_P_real, heatmap_P_imag, heatmap_Omega_abs2, heatmap_Omega_real, heatmap_Omega_imag, plot_P_abs2, plot_P_real, plot_P_imag, size=(1200, 800), layout=(3, 3))
+big_heatie = plot(heatmap_P_abs2, heatmap_P_real, heatmap_P_imag, heatmap_Omega_abs2, heatmap_Omega_real, heatmap_Omega_imag, plot_P_abs2, plot_P_real, plot_P_imag, size=(1400, 1000), layout=(3, 3))
 display(big_heatie)
 sleep(5)
 
+#=
 #animation not very nice since we are still in the speed of light frame
 anim = @animate for i in 1:Nt
 
@@ -302,3 +235,4 @@ anim = @animate for i in 1:Nt
 end
 
 gif(anim, "field_and_polarisation.gif", fps=30)
+=#
