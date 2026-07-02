@@ -44,20 +44,14 @@ function plot_propagation(result; plot_size=(1400, 1000), z_index=nothing)
         title="imaginary part of Omega", xlabel="t", ylabel="z", c=:viridis,
     )
 
-    plot_P_abs2 = plot(time_vec, abs2.(P[:, z_index]); title="abs2(P) at z index $z_index")
-    plot_P_real = plot(time_vec, real.(P[:, z_index]); title="real(P) at z index $z_index")
-    plot_P_imag = plot(time_vec, imag.(P[:, z_index]); title="imag(P) at z index $z_index")
+    plot_P_abs2 = plot(time_vec, abs2.(P[:, z_index]); title="abs2(P) at z=$(round(z_vec[z_index], digits=2))")
+    plot_P_real = plot(time_vec, real.(P[:, z_index]); title="real(P) at z=$(round(z_vec[z_index], digits=2))")
+    plot_P_imag = plot(time_vec, imag.(P[:, z_index]); title="imag(P) at z=$(round(z_vec[z_index], digits=2))")
 
     return plot(
-        heatmap_P_abs2,
-        heatmap_P_real,
-        heatmap_P_imag,
-        heatmap_Omega_abs2,
-        heatmap_Omega_real,
-        heatmap_Omega_imag,
-        plot_P_abs2,
-        plot_P_real,
-        plot_P_imag;
+        heatmap_P_abs2, heatmap_Omega_abs2, plot_P_abs2,
+        heatmap_P_real, heatmap_Omega_real, plot_P_real,
+        heatmap_P_imag, heatmap_Omega_imag, plot_P_imag;
         size=plot_size,
         layout=(3, 3),
     )

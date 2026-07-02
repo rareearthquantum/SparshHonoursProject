@@ -2,9 +2,9 @@ using FFTW
 #using Interpolations
 #using OrdinaryDiffEqLowOrderRK
 
-include(srcdir("stepping_schemes.jl"))
-include(srcdir("initialise_params.jl"))
-include(srcdir("equations.jl"))
+include(srcdir("old/stepping_schemes.jl"))
+#include(srcdir("initialise_params.jl"))
+include(srcdir("old/equations.jl"))
 include(srcdir("input_pulse_methods.jl"))
 
 
@@ -31,7 +31,7 @@ function initialise_params_test(
     end
 
     P_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
-    P_grid[:, 1, :] .= zeros(Complex, Nz, Ny)
+    P_grid[:, 1, :] .= zeros(ComplexF64, Nz, Ny)
 
     a_grid = Array{ComplexF64}(undef, Nz, Nt, Ny)
     a_grid[1, :, :] .= initialise_pulses(t_grid, y_grid, pulse_params)
@@ -45,15 +45,19 @@ end
 
 
 function f_a_fft_test!(alpha, P, factor)
-    im * alpha * P * factor
+    return im*alpha*P*factor
 end
 
-function factor(z, v, beta)
-    return exp(im * beta * 4 * pi^2 * v^2 * z)
+function factor(z, ky, beta)
+    return exp(im*beta*ky^2*z)
 end
 
-function factor_grid(z_grid, v_grid, beta)
-    return exp.(im .* beta .* 4 .* pi^2 .* v_grid' .^ 2 .* z_grid)
+function factor_grid(z_grid, ky_grid, beta)
+    factors = Array{ComplexF64}(undef,length(z_grid),length(ky_grid))
+    for i in eachindex(z_grid)
+        @. factors[i,:] = exp(im*beta*ky_grid^2*z_grid[i])
+    end
+    return factors
 end
 
 function evolve_a_fft_grid_test(t_grid::AbstractVector,
@@ -125,8 +129,8 @@ function evolve_diff_2d_test(
 
     z_grid, t_grid, d_grid, y_grid, P_grid, a_grid = initialise_params_test(pulse_params, N, B)
 
-    v_grid::LinRange{Float64,Int64} = fftshift(fftfreq(length(y_grid), 1 / step(y_grid)))
-    phasefactor_grid = factor_grid(z_grid, v_grid, beta)
+    ky_grid::LinRange{Float64,Int64} = 2pi.*fftshift(fftfreq(length(y_grid), 1 / step(y_grid)))
+    phasefactor_grid = factor_grid(z_grid, ky_grid, beta)
 
 
     for i in eachindex(z_grid)

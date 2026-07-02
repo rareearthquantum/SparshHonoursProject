@@ -1,9 +1,9 @@
 using DrWatson
 @quickactivate "SparshHonoursProject"
 
-include(srcdir("prototype_fft_schemes.jl"))
-include(srcdir("plotting.jl"))
-include(srcdir("constants.jl"))
+include(srcdir("old/linear_propagation_2d.jl"))
+include(srcdir("old/custom_plotting.jl"))
+include(srcdir("old/constants.jl"))
 
 
 #INPUT PARAMS
@@ -19,7 +19,7 @@ const T_range = (0.0, 50micro)
 
 const y_pulse_width = 10micro
 const ZR = 0.5 * k * y_pulse_width^2
-const Y_width = real(sqrt(y_pulse_width^2 + im * 2 * beta * Z_length))
+const Y_width = 10*abs(sqrt(y_pulse_width^2 + im * 2 * beta * Z_length))
 const Y_range = (-Y_width / 2, Y_width / 2)
 
 const seperation = 40micro
@@ -39,11 +39,11 @@ const pulse_params = [
         (alpha, beta)
     )
 
-# ifft back
-new_v_grid = fftshift(fftfreq(Ny, 1 / step(new_y_grid)))
+# spin by factor backwards, then ifft! back
+new_ky_grid = 2pi.*fftshift(fftfreq(Ny, 1 / step(new_y_grid)))
 for i in eachindex(new_z_grid)
     for j in eachindex(new_t_grid)
-        new_a_grid[i, j, :] .*= factor.(new_z_grid[i], new_v_grid, -beta)
+        new_a_grid[i, j, :] .*= factor.(new_z_grid[i], new_ky_grid, -beta)
     end
 end
 ifft!(new_a_grid, 3)
@@ -64,7 +64,7 @@ savefig("plots/test_a_abs2" *
 
 analytic_width = z -> sqrt(y_pulse_width^2 + im * 2 * beta * z)
 analytic_pulse_params = z -> ((center=(T_range[2] - T_range[1]) / 2, width=10micro, area=1.0), (center=0.0, width=analytic_width(z), area=1.0))
-analytic_function = z -> pulse.(new_t_grid, analytic_pulse_params(z)[1]...) .* pulse.(new_y_grid, analytic_pulse_params(z)[2]...)'
+analytic_function = z -> pulse.(new_t_grid, analytic_pulse_params(z)[1]...) .* transpose(pulse.(new_y_grid, analytic_pulse_params(z)[2]...))
 
 analytic_grid = Array{Complex}(undef, Nz, Nt, Ny)
 for i in eachindex(new_z_grid)

@@ -4,8 +4,7 @@ function pulse(
     width,
     area
 )
-    normalisation_factor = 1 / (sqrt(2pi) * width)
-    return area * normalisation_factor * exp(-0.5 * ((u - center) / width)^2)
+    return area * (1 / (sqrt(2pi) * width)) * exp(-0.5 * ((u - center) / width)^2)
 end
 
 function pulse(
@@ -16,21 +15,6 @@ function pulse(
     pulse(u, center, width, area)
 end
 
-
-#Preset pulse in t
-function Ein_t(t)
-    p1c, p1w, p1A = 5.0, 1.0, pi / 1
-    p1 = pulse(t, p1c, p1w, p1A)
-    #p2 = pulse(t,18.0,1.0,1.0)
-    return p1
-end
-
-#Preset pulse in y
-function Ein_y(y)
-    p_c, p_w, p_A = 0.0, 1.0, 1.0
-    p = pulse(y, p_c, p_w, p_A)
-    return p
-end
 
 struct PulseParams
     center

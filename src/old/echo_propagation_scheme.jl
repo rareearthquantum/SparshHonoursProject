@@ -2,7 +2,7 @@ using DrWatson
 @quickactivate "SparshHonoursProject"
 
 using LinearAlgebra, Plots, LinearInterpolations
-include(srcdir("input_pulse_methods.jl"))
+include(srcdir("old/input_pulse_methods.jl"))
 
 
 
