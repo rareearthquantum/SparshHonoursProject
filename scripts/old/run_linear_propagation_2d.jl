@@ -11,21 +11,24 @@ include(srcdir("old/constants.jl"))
 const Nz = 64 #number of z-sites
 const Nd = 64  #number of detunings/atoms at each z-site
 const Nt = 64  #number of time steps
-const Ny = 64 *2 
+const Ny = 64 * 4
 
 const Z_length = 2milli
 const Z_range = (0.0, Z_length)
 const T_range = (0.0, 50micro)
 
 const y_pulse_width = 10micro
-const ZR = 0.5 * k * y_pulse_width^2
-const Y_width = 10*abs(sqrt(y_pulse_width^2 + im * 2 * beta * Z_length))
+const Y_width = 6*y_pulse_width*sqrt(1+(2*beta*Z_length/y_pulse_width^2)^2)
 const Y_range = (-Y_width / 2, Y_width / 2)
 
 const seperation = 40micro
+const t_pulse_width = 10micro
 const pulse_params = [
-    ((center=T_range[2] / 2, width=10micro, area=1.0), (center=0.0, width=y_pulse_width, area=1.0))
+    ((center=T_range[2] / 2, width=t_pulse_width, area=1.0), (center=0.0, width=y_pulse_width, area=1.0))
 ]
+
+@show 1/(3t_pulse_width)
+@show Nt/(T_range[2]-T_range[1])
 
 @show "test run"
 

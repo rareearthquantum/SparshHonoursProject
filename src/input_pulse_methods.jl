@@ -35,6 +35,6 @@ function initialise_pulses(t_grid, y_grid, pulse_params)
 end
 
 
-function flat_pulse(u,ui,uf)::Complex
+function flat_pulse(u,ui,uf)::Real
     return (ui <= u && u <= uf)
 end
