@@ -1,8 +1,8 @@
-using DrWatson
-@quickactivate "SparshHonoursProject"
+import Pkg
+Pkg.activate(dirname(@__DIR__))
 
-include(srcdir("input_pulse_methods.jl"))
-include(srcdir("echo_propagation.jl"))
+include("../src/input_pulse_methods.jl")
+include("../src/echo_propagation.jl")
 
 cfg = EchoConfig()
 

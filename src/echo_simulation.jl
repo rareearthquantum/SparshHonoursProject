@@ -1,7 +1,5 @@
-# Simulation setup and propagation loop.
-
 function make_rotate_grid(detunings, time_vec)
-    return [exp(im * δ * t) for δ in detunings, t in time_vec]
+    return [cis( δ * t) for δ in detunings, t in time_vec]
 end
 
 function initialise_field(cfg::EchoConfig, time_vec, z_vec, omega_input)
@@ -20,15 +18,20 @@ function reset_atom_history!(sigma_temp)
     return nothing
 end
 
-function atom_stage_params(Omega_col, rotate_vec, time_vec)
-    # Currently all RK4 stages use the same field column Ω[:, j], matching
-    # the uploaded working script. If you later add true half-step fields,
-    # this is the place to pass different p1, p2, p3, p4 values.
-    p = (Omega_col, rotate_vec, time_vec)
+function atom_stage_params(Omega_col, detuning, time_vec)
+    p = (Omega_col, detuning, time_vec)
     return (p, p, p, p)
 end
 
-function compute_polarisation_column!(P_col, sigma_temp, Omega_col, rotate_grid, time_vec)
+function atom_substeps(detunings, time_vec; max_phase_step=1.0)
+    max_phase_step > 0 || throw(ArgumentError("max_phase_step must be positive"))
+    maximum_phase_rate = maximum(abs, detunings)
+    # Keep the fastest detuning phase advance controlled independently of Nt.
+    return max(1, ceil(Int, maximum_phase_rate * step(time_vec) / max_phase_step))
+end
+
+function compute_polarisation_column!(
+        P_col, sigma_temp, Omega_col, detunings, rotate_grid, time_vec, substeps)
     Nd = size(rotate_grid, 1)
     fill!(P_col, 0)
 
@@ -36,9 +39,9 @@ function compute_polarisation_column!(P_col, sigma_temp, Omega_col, rotate_grid,
         reset_atom_history!(sigma_temp)
 
         rotate_vec = @view rotate_grid[i, :]
-        ps = atom_stage_params(Omega_col, rotate_vec, time_vec)
+        ps = atom_stage_params(Omega_col, detunings[i], time_vec)
 
-        rk4_staged!(atom_single!, sigma_temp, time_vec, ps)
+        rk4_staged!(atom_single!, sigma_temp, time_vec, ps; substeps=substeps)
 
         @views @. P_col += sigma_temp[1, :] * conj(rotate_vec)
     end
@@ -50,7 +53,8 @@ end
 
 function run_propagation(cfg::EchoConfig=EchoConfig();
         omega_input=make_default_omega_input(cfg),
-        compute_final_polarisation::Bool=true)
+        compute_final_polarisation::Bool=true,
+        max_atom_phase_step::Real=1.0)
 
     detunings = make_detunings(cfg)
     time_vec = make_time_grid(cfg)
@@ -62,10 +66,12 @@ function run_propagation(cfg::EchoConfig=EchoConfig();
     sigma_temp = zeros(ComplexF64, 2, length(time_vec))
 
     rotate_grid = make_rotate_grid(detunings, time_vec)
+    substeps = atom_substeps(detunings, time_vec; max_phase_step=max_atom_phase_step)
     field_cache = @views AB2Cache(Omega[:, 1])
 
     @inbounds for j in 1:(length(z_vec)-1)
-        @views compute_polarisation_column!(P[:, j], sigma_temp, Omega[:, j], rotate_grid, time_vec)
+        @views compute_polarisation_column!(
+            P[:, j], sigma_temp, Omega[:, j], detunings, rotate_grid, time_vec, substeps)
 
         @views ab2_step!(
             field!,
@@ -78,11 +84,9 @@ function run_propagation(cfg::EchoConfig=EchoConfig();
         )
     end
 
-    # The original script left P[:, end] at zero because the final z column
-    # is never needed to step Ω forward. Computing it avoids a misleading
-    # zero stripe in the final polarisation heatmap.
     if compute_final_polarisation
-        @views compute_polarisation_column!(P[:, end], sigma_temp, Omega[:, end], rotate_grid, time_vec)
+        @views compute_polarisation_column!(
+            P[:, end], sigma_temp, Omega[:, end], detunings, rotate_grid, time_vec, substeps)
     end
 
     return (
@@ -93,5 +97,7 @@ function run_propagation(cfg::EchoConfig=EchoConfig();
         Omega=Omega,
         P=P,
         rotate_grid=rotate_grid,
+        atom_substeps=substeps,
+        max_atom_phase_step=max_atom_phase_step,
     )
 end

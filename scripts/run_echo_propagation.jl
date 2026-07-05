@@ -8,5 +8,5 @@ cfg = EchoConfig()
 
 @time result = run_propagation(cfg)
 
-# Useful variables after include("scripts/run_propagation_no_plots.jl"):
-# result.time_vec, result.z_vec, result.Omega, result.P, result.detunings
+fig = plot_propagation_compact(result)
+display(fig)

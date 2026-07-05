@@ -1,17 +1,17 @@
-using DrWatson
-@quickactivate "SparshHonoursProject"
+import Pkg
+Pkg.activate(normpath(joinpath(@__DIR__, "..")))
 
 using LinearAlgebra
 using Plots
-include(srcdir("input_pulse_methods.jl"))
+include(joinpath(@__DIR__, "input_pulse_methods.jl"))
 
 #FUNCTIONS
 function atom!(ds, s, t, p)
 
     detunings, Nd, Omega = p
 
-    @. ds[1:Nd] = -0.5*im*Omega(t)*s[(Nd+1):2Nd]*exp(im*detunings*t)
-    @. ds[(Nd+1):2Nd] = 2*imag(conj(Omega(t))*s[1:Nd]*exp(-im*detunings*t))
+    @. ds[1:Nd] = -0.5*im*Omega(t)*s[(Nd+1):2Nd]*cis(detunings*t)
+    @. ds[(Nd+1):2Nd] = 2*imag(conj(Omega(t))*s[1:Nd]*cis(-detunings*t))
 
     return nothing
 end
@@ -41,16 +41,15 @@ function rk4!(f, u, t_vec, p)
 end
 
 #PARAMS
-Nd = 100
-d_width = 10.0
-detunings = LinRange(-d_width/2, d_width/2, Nd)
-
 Nt = 1000
 Ti = 0.0
 Tf = 10.0
 time_vec = LinRange(Ti, Tf, Nt)
 
-t_width = Tf - Ti
+d_width = 1/step(time_vec)
+Nd = 2*d_width |> x->round(Int,x) 
+@show d_width
+detunings = LinRange(-d_width/2, d_width/2, Nd)
 
 #INTIALISE
 rho = Array{ComplexF64}(undef, 2Nd, Nt)
@@ -58,6 +57,7 @@ rho[1:Nd,1] .= 0.0 + 0.0im
 rho[Nd+1:2Nd,1] .= -1.0
 
 #PULSE WITH PARAMS
+t_width = Tf - Ti
 Omega_input(t) = pulse(t, t_width/10, t_width/100, pi/2) + pulse(t, 3t_width/10, t_width/100, pi)
 
 
@@ -67,7 +67,7 @@ Omega_input(t) = pulse(t, t_width/10, t_width/100, pi/2) + pulse(t, 3t_width/10,
 
 #unrotate
 for i in 1:Nt
-    @. rho[1:Nd, i] *= exp(-im*detunings*time_vec[i])
+    @. rho[1:Nd, i] *= cis(-detunings*time_vec[i])
 end
 
 #SUM AND INTERPRET

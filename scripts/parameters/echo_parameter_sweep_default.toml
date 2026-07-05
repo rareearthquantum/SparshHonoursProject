@@ -1,0 +1,12 @@
+[base_config]
+Ti = 0.0
+Tf = 10.0
+Zi = 0.0
+Zf = 10.0
+
+[sweep_parameters]
+alpha = [1.0, 10.0, 50.0]
+d_width = [10.0, 50.0, 100.0]
+Nd = [256]
+Nt = [512, 1024]
+Nz = [256]

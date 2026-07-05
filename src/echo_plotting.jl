@@ -1,59 +1,211 @@
-# Plotting and animation helpers.
-
 using Plots
 
 function heatmap_matrix(A)
-    # A is stored as time × z. Plots wants z × time for heatmap(time, z, data).
-    # Use transpose, not adjoint ('), so complex quantities are not conjugated.
     return transpose(A)
 end
 
-function plot_propagation(result; plot_size=(1400, 1000), z_index=nothing)
+function plot_propagation(result; plot_size=(1500, 1000))
     time_vec = result.time_vec
     z_vec = result.z_vec
     Omega = result.Omega
     P = result.P
 
-    if z_index === nothing
-        z_index = max(1, length(z_vec))
-    end
+    p_limit = maximum(abs, vcat(vec(real.(P)), vec(imag.(P))))
+    omega_limit = maximum(abs, vcat(vec(real.(Omega)), vec(imag.(Omega))))
+    p_clims = (-p_limit, p_limit)
+    omega_clims = (-omega_limit, omega_limit)
+
+    omega_abs2_max = maximum(abs2, Omega)
+    omega_abs2_ylim = (0, omega_abs2_max == 0 ? 1 : 1.05omega_abs2_max)
+    z_indices = (1, cld(length(z_vec), 2), length(z_vec))
+
+    heatmap_style = (
+        framestyle=:box,
+        legend=false,
+        colorbar=false,
+        grid=false,
+        tickfontsize=9,
+        guidefontsize=10,
+        titlefontsize=11,
+        titlefontcolor=RGB(0.15, 0.18, 0.20),
+        foreground_color_axis=RGB(0.35, 0.38, 0.40),
+        background_color=:white,
+        margin=2Plots.mm,
+    )
+    line_style = (
+        framestyle=:box,
+        legend=false,
+        grid=:y,
+        gridalpha=0.16,
+        minorgrid=false,
+        tickfontsize=9,
+        guidefontsize=10,
+        titlefontsize=11,
+        titlefontcolor=RGB(0.15, 0.18, 0.20),
+        foreground_color_axis=RGB(0.35, 0.38, 0.40),
+        background_color=:white,
+        margin=2Plots.mm,
+    )
 
     heatmap_P_abs2 = heatmap(
         time_vec, z_vec, heatmap_matrix(abs2.(P));
-        title="abs2 of polarisation", xlabel="t", ylabel="z", c=:viridis,
+        title="Polarisation intensity  |P|²", xlabel="", ylabel="Position  z",
+        c=:viridis, heatmap_style...
     )
     heatmap_P_real = heatmap(
         time_vec, z_vec, heatmap_matrix(real.(P));
-        title="real part of polarisation", xlabel="t", ylabel="z", c=:viridis,
+        title="Polarisation  Re(P)", xlabel="", ylabel="Position  z",
+        c=:viridis, clims=p_clims, heatmap_style...
     )
     heatmap_P_imag = heatmap(
         time_vec, z_vec, heatmap_matrix(imag.(P));
-        title="imaginary part of polarisation", xlabel="t", ylabel="z", c=:viridis,
+        title="Polarisation  Im(P)", xlabel="Time  t", ylabel="Position  z",
+        c=:viridis, clims=p_clims, heatmap_style...
     )
 
     heatmap_Omega_abs2 = heatmap(
         time_vec, z_vec, heatmap_matrix(abs2.(Omega));
-        title="abs2 of Omega", xlabel="t", ylabel="z", c=:viridis,
+        title="Field intensity  |Ω|²", xlabel="", ylabel="",
+        c=:viridis, heatmap_style...
     )
     heatmap_Omega_real = heatmap(
         time_vec, z_vec, heatmap_matrix(real.(Omega));
-        title="real part of Omega", xlabel="t", ylabel="z", c=:viridis,
+        title="Field  Re(Ω)", xlabel="", ylabel="",
+        c=:viridis, clims=omega_clims, heatmap_style...
     )
     heatmap_Omega_imag = heatmap(
         time_vec, z_vec, heatmap_matrix(imag.(Omega));
-        title="imaginary part of Omega", xlabel="t", ylabel="z", c=:viridis,
+        title="Field  Im(Ω)", xlabel="Time  t", ylabel="",
+        c=:viridis, clims=omega_clims, heatmap_style...
     )
 
-    plot_P_abs2 = plot(time_vec, abs2.(P[:, z_index]); title="abs2(P) at z=$(round(z_vec[z_index], digits=2))")
-    plot_P_real = plot(time_vec, real.(P[:, z_index]); title="real(P) at z=$(round(z_vec[z_index], digits=2))")
-    plot_P_imag = plot(time_vec, imag.(P[:, z_index]); title="imag(P) at z=$(round(z_vec[z_index], digits=2))")
+    omega_input = plot(
+        time_vec, abs2.(Omega[:, z_indices[1]]);
+        xlabel="", ylabel="", title="Input face",
+        ylim=omega_abs2_ylim, linewidth=2.2, color=RGB(0.08, 0.36, 0.48), line_style...
+    )
+    omega_center = plot(
+        time_vec, abs2.(Omega[:, z_indices[2]]);
+        xlabel="", ylabel="Field intensity  |Ω|²", title="Centre of medium",
+        ylim=omega_abs2_ylim, linewidth=2.2, color=RGB(0.08, 0.36, 0.48), line_style...
+    )
+    omega_output = plot(
+        time_vec, abs2.(Omega[:, z_indices[3]]);
+        xlabel="Time  t", ylabel="", title="Output face",
+        ylim=omega_abs2_ylim, linewidth=2.2, color=RGB(0.08, 0.36, 0.48), line_style...
+    )
 
     return plot(
-        heatmap_P_abs2, heatmap_Omega_abs2, plot_P_abs2,
-        heatmap_P_real, heatmap_Omega_real, plot_P_real,
-        heatmap_P_imag, heatmap_Omega_imag, plot_P_imag;
+        heatmap_P_abs2, heatmap_Omega_abs2,
+        omega_input,
+        heatmap_P_real, heatmap_Omega_real,
+        omega_center,
+        heatmap_P_imag, heatmap_Omega_imag,
+        omega_output;
         size=plot_size,
-        layout=(3, 3),
+        layout=grid(3, 3; widths=[0.36, 0.36, 0.28]),
+        link=:x,
+        left_margin=1Plots.mm,
+        right_margin=1Plots.mm,
+        top_margin=5Plots.mm,
+        bottom_margin=5Plots.mm,
+        subplot_spacing=1Plots.mm,
+        background_color=:white,
+    )
+end
+
+function plot_propagation_compact(result; plot_size=(1540, 900))
+    time_vec = result.time_vec
+    z_vec = result.z_vec
+    Omega = result.Omega
+    P = result.P
+
+    p_limit = maximum(abs, vcat(vec(real.(P)), vec(imag.(P))))
+    omega_limit = maximum(abs, vcat(vec(real.(Omega)), vec(imag.(Omega))))
+    p_clims = (-p_limit, p_limit)
+    omega_clims = (-omega_limit, omega_limit)
+
+    omega_abs2_ylim = extrema(abs2.(Omega))
+    p_abs2_clims = extrema(abs2.(P))
+    omega_abs2_clims = omega_abs2_ylim
+    z_indices = (1, cld(length(z_vec), 2), length(z_vec))
+    viridis_line_color = palette(:viridis, 3)[2]
+
+    p_abs2_ticks = range(p_abs2_clims...; length=4)
+    p_component_ticks = range(p_clims...; length=5)
+    omega_abs2_ticks = range(omega_abs2_clims...; length=4)
+    omega_component_ticks = range(omega_clims...; length=5)
+
+    heatmap_P_abs2 = heatmap(
+        time_vec, z_vec, heatmap_matrix(abs2.(P));
+        title="Polarisation intensity",
+        xlabel="",
+        ylabel="z",
+        c=:viridis,
+        clims=p_abs2_clims,
+        colorbar_ticks=p_abs2_ticks,
+        colorbar_tickfontsize=7,
+    )
+    heatmap_P_imag = heatmap(
+        time_vec, z_vec, heatmap_matrix(imag.(P));
+        title="Polarisation imaginary part",
+        xlabel="t",
+        ylabel="z",
+        c=:viridis,
+        clims=p_clims,
+        colorbar_ticks=p_component_ticks,
+        colorbar_tickfontsize=7,
+    )
+    heatmap_Omega_abs2 = heatmap(
+        time_vec, z_vec, heatmap_matrix(abs2.(Omega));
+        title="Field intensity",
+        xlabel="",
+        ylabel="",
+        c=:viridis,
+        clims=omega_abs2_clims,
+        colorbar_ticks=omega_abs2_ticks,
+        colorbar_tickfontsize=7,
+    )
+    heatmap_Omega_real = heatmap(
+        time_vec, z_vec, heatmap_matrix(real.(Omega));
+        title="Field real part",
+        xlabel="t",
+        ylabel="",
+        c=:viridis,
+        clims=omega_clims,
+        colorbar_ticks=omega_component_ticks,
+        colorbar_tickfontsize=7,
+    )
+
+    omega_input = plot(
+        time_vec, abs2.(Omega[:, z_indices[1]]);
+        title="Input face",
+        xlabel="",
+        ylabel="",
+        legend=false,
+        color=viridis_line_color,
+        ylim=omega_abs2_ylim,
+    )
+    omega_output = plot(
+        time_vec, abs2.(Omega[:, z_indices[3]]);
+        title="Output face",
+        xlabel="t",
+        ylabel="",
+        legend=false,
+        color=viridis_line_color,
+        ylim=omega_abs2_ylim,
+    )
+
+    return plot(
+        heatmap_P_abs2, heatmap_Omega_abs2, omega_input,
+        heatmap_P_imag, heatmap_Omega_real, omega_output;
+        size=plot_size,
+        layout=(2, 3),
+        link=:x,
+        left_margin=2Plots.mm,
+        right_margin=2Plots.mm,
+        top_margin=3Plots.mm,
+        bottom_margin=3Plots.mm,
     )
 end
 

@@ -2,10 +2,10 @@ using FFTW
 #using Interpolations
 #using OrdinaryDiffEqLowOrderRK
 
-include(srcdir("old/stepping_schemes.jl"))
-#include(srcdir("initialise_params.jl"))
-include(srcdir("old/equations.jl"))
-include(srcdir("input_pulse_methods.jl"))
+include(joinpath(@__DIR__, "stepping_schemes.jl"))
+# include(joinpath(@__DIR__, "initialise_params.jl"))
+include(joinpath(@__DIR__, "equations.jl"))
+include(joinpath(@__DIR__, "..", "input_pulse_methods.jl"))
 
 
 function initialise_params_test(

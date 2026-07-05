@@ -1,9 +1,4 @@
-# Right-hand sides for the atom and field equations.
-
 function time_index_grabber(t, t_vec)::Int
-    # For an array-valued field Ω(tᵢ), use the most recent grid value.
-    # This preserves the behaviour of the original floor-division version,
-    # but avoids depending on a global Ti variable.
     T = float(eltype(t_vec))
     tol = 100 * eps(T) * max(abs(first(t_vec)), abs(last(t_vec)), one(T))
 
@@ -15,12 +10,22 @@ function time_index_grabber(t, t_vec)::Int
     return searchsortedlast(t_vec, t_clamped)
 end
 
-function atom_single!(ds, s, t, p)
-    Omega, rotate_vec, time_vec = p
+function linear_sample(values, t, time_vec)
     index = time_index_grabber(t, time_vec)
+    index == lastindex(time_vec) && return values[index]
 
-    ds[1] = -0.5im * Omega[index] * s[2] * rotate_vec[index]
-    ds[2] = 2imag(conj(Omega[index]) * s[1] * conj(rotate_vec[index]))
+    fraction = (t - time_vec[index]) / (time_vec[index+1] - time_vec[index])
+    return (1 - fraction) * values[index] + fraction * values[index+1]
+end
+
+function atom_single!(ds, s, t, p)
+    Omega, detuning, time_vec = p
+    # RK4 stages generally fall between saved time samples.
+    Omega_t = linear_sample(Omega, t, time_vec)
+    rotate_t = cis(detuning * t)
+
+    ds[1] = -0.5im * Omega_t * s[2] * rotate_t
+    ds[2] = 2imag(conj(Omega_t) * s[1] * conj(rotate_t))
 
     return nothing
 end

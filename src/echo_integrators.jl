@@ -1,8 +1,3 @@
-# Small explicit stepping utilities.
-#
-# The field is stepped in z with AB2, bootstrapped by Euler.
-# The atom history is stepped in t with RK4.
-
 function euler_step!(f, uf, ui, t, dt, p, k)
     f(k, ui, t, p)
     @. uf = ui + dt * k
@@ -81,12 +76,23 @@ function rk4_staged_step!(f, uf, ui, t, dt, ps, cache::RK4Cache)
     return nothing
 end
 
-function rk4_staged!(f, u, t_vec, ps)
-    dt = step(t_vec)
+function rk4_staged!(f, u, t_vec, ps; substeps::Integer=1)
+    substeps >= 1 || throw(ArgumentError("substeps must be at least 1"))
+
+    dt = step(t_vec) / substeps
     cache = @views RK4Cache(u[:, 1])
+    work = @views similar(u[:, 1])
 
     @inbounds for i in 1:(length(t_vec)-1)
-        @views rk4_staged_step!(f, u[:, i+1], u[:, i], t_vec[i], dt, ps, cache)
+        @views copyto!(work, u[:, i])
+
+        for substep in 1:(substeps-1)
+            t = t_vec[i] + (substep - 1) * dt
+            rk4_staged_step!(f, work, work, t, dt, ps, cache)
+        end
+
+        t = t_vec[i] + (substeps - 1) * dt
+        @views rk4_staged_step!(f, u[:, i+1], work, t, dt, ps, cache)
     end
 
     return nothing

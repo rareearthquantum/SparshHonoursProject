@@ -1,9 +1,9 @@
-using DrWatson
-@quickactivate "SparshHonoursProject"
+import Pkg
+Pkg.activate(normpath(joinpath(@__DIR__, "..", "..")))
 
-include(srcdir("old/linear_propagation_2d.jl"))
-include(srcdir("old/custom_plotting.jl"))
-include(srcdir("old/constants.jl"))
+include(joinpath(@__DIR__, "..", "..", "src", "old", "linear_propagation_2d.jl"))
+include(joinpath(@__DIR__, "..", "..", "src", "old", "custom_plotting.jl"))
+include(joinpath(@__DIR__, "..", "..", "src", "old", "constants.jl"))
 
 
 #INPUT PARAMS

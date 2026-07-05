@@ -1,14 +1,14 @@
-using DrWatson
-@quickactivate "SparshHonoursProject"
+import Pkg
+Pkg.activate(normpath(joinpath(@__DIR__, "..", "..")))
 
 using LinearAlgebra, Plots, LinearInterpolations
-include(srcdir("old/input_pulse_methods.jl"))
+include(joinpath(@__DIR__, "input_pulse_methods.jl"))
 
 
 
 
 function atom_single!(ds, s, t, p)
-    detuning, Omega, rotate_vec, index, time_vec = p
+    Omega, rotate_vec, index, time_vec = p
     index = time_index_grabber(t, time_vec)
 
     ds[1] = -0.5*im*Omega[index]*s[2]*rotate_vec[index]
@@ -122,25 +122,23 @@ function time_index_grabber(t, t_vec)::Int64
     return (t-Ti)÷step(t_vec)+1
 end
 
+#Changable parameters
+Nt = 1000
+T_range = (0.0, 10.0)
 Nd = 100
 d_width = 10.0
-detunings = LinRange(-d_width/2, d_width/2, Nd)
-
-Nt = 1000
-Ti = 0.0
-Tf = 10.0
-time_vec = LinRange(Ti, Tf, Nt)
-
-t_width = Tf - Ti
-
 Nz = 100
-Zi = 0.0
-Zf = 10.0
-z_vec = LinRange(Zi, Zf, Nz)
-dz = step(z_vec)
+Z_range = (0.0, 10.0)
+
+t_width = T_range[end] - T_range[begin]
+Omega_input(t) = pulse(t, 3t_width/10, t_width/10, 4pi)
+
+#initiliasing
+time_vec = LinRange(T_range[begin], T_range[end], Nt)
+detunings = LinRange(-d_width/2, d_width/2, Nd)
+z_vec = LinRange(Z_range[begin], Z_range[end], Nz)
 
 Omega = zeros(ComplexF64, Nt, Nz)
-Omega_input(t) = pulse(t, 3t_width/10, t_width/10, 4pi)
 Omega[:, 1] = Omega_input.(time_vec)
 
 P = zeros(ComplexF64, Nt, Nz)
@@ -150,7 +148,6 @@ sigma_temp = zeros(ComplexF64, 2, Nt)
 sigma_temp[2, 1] = -1.0
 
 field_cache = AB2Cache(Omega[:, 1])
-Omega_halfsteps = similar(Omega[:, 1])
 
 index::Int64 = 0
 
@@ -171,10 +168,10 @@ end
     for i in 1:Nd
         @views rk4_staged!(atom_single!, sigma_temp, time_vec,
             (
-                (detunings[i], Omega[:, j], rotate_grid[i, :], index, time_vec),
-                (detunings[i], Omega[:, j], rotate_grid[i, :], index, time_vec),
-                (detunings[i], Omega[:, j], rotate_grid[i, :], index, time_vec),
-                (detunings[i], Omega[:, j], rotate_grid[i, :], index, time_vec)
+                (Omega[:, j], rotate_grid[i, :], index, time_vec),
+                (Omega[:, j], rotate_grid[i, :], index, time_vec),
+                (Omega[:, j], rotate_grid[i, :], index, time_vec),
+                (Omega[:, j], rotate_grid[i, :], index, time_vec)
             )
         )
 
@@ -187,7 +184,7 @@ end
         Omega[:, j+1],
         Omega[:, j],
         z_vec[j],
-        dz,
+        step(z_vec),
         (alpha, P[:, j]),
         field_cache
     )
