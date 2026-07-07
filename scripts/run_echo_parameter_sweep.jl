@@ -9,20 +9,15 @@ get!(ENV, "GKSwstype", "100")
 using Dates
 using JLD2
 using Printf
-using TOML
 
-include("../src/input_pulse_methods.jl")
 include("../src/echo_propagation.jl")
 include("../src/echo_parameter_sweep.jl")
 
-# Parameters not overridden in the profile retain these values.
-const BASE_CONFIG = EchoConfig()
-const DEFAULT_SWEEP_PROFILE = joinpath(PROJECT_ROOT, "scripts", "parameters", "echo_parameter_sweep_default.toml")
+const DEFAULT_SWEEP_PROFILE = joinpath(PROJECT_ROOT, "scripts", "parameters", "echo_parameter_sweep_default.jl")
 
 function main()
     profile_path = isempty(ARGS) ? DEFAULT_SWEEP_PROFILE : abspath(first(ARGS))
-    profile = load_sweep_profile(profile_path)
-    profile_base_config = make_config(BASE_CONFIG, profile.base_config)
+    profile = include(profile_path)
     combinations = sweep_combinations(profile.sweep_parameters)
     save_data = lowercase(get(ENV, "ECHO_SWEEP_SAVE_DATA", "false")) in ("1", "true", "yes")
 
@@ -33,10 +28,11 @@ function main()
     end
     timestamp = Dates.format(now(), dateformat"yyyymmdd-HHMMSS-sss")
     job_suffix = haskey(ENV, "SLURM_JOB_ID") ? "_job-$(ENV["SLURM_JOB_ID"])" : ""
-    output_dir = joinpath(output_root, "$(profile.profile_name)_$(timestamp)$(job_suffix)")
+    profile_name = splitext(basename(profile_path))[1]
+    output_dir = joinpath(output_root, "$(profile_name)_$(timestamp)$(job_suffix)")
     mkpath(output_dir)
 
-    println("Sweep profile: $(profile.profile_path)")
+    println("Sweep profile: $(abspath(profile_path))")
     println("Running $(length(combinations)) echo propagation simulation(s)")
     println("Output directory: $output_dir")
     println("Saving JLD2 data: $save_data")
@@ -45,7 +41,7 @@ function main()
     end
 
     for (index, parameters) in enumerate(combinations)
-        cfg = make_config(profile_base_config, parameters)
+        cfg = make_config(profile.base_config, parameters)
         label = run_label(index, parameters)
         println("\n[$index/$(length(combinations))] $label")
 

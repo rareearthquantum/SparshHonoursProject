@@ -1,3 +1,4 @@
+include("input_pulse_methods.jl")
 include("echo_config.jl")
 include("echo_equations.jl")
 include("echo_integrators.jl")

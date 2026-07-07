@@ -1,11 +1,4 @@
-make_unrotate_grid(detunings, time_vec) =
-    [cis(-detuning * t) for detuning in detunings, t in time_vec]
-
-function atom_substeps(detunings, time_vec; max_phase_step=1.0)
-    max_phase_step > 0 || throw(ArgumentError("max_phase_step must be positive"))
-    # Keep the fastest detuning phase advance controlled independently of Nt.
-    return max(1, ceil(Int, maximum(abs, detunings) * step(time_vec) / max_phase_step))
-end
+make_unrotate_grid(detunings, time_vec) = [cis(-detuning * t) for detuning in detunings, t in time_vec]
 
 function compute_polarisation_column!(
         P_col, sigma_temp, Omega_col, detunings, unrotate_grid, time_vec, substeps)
@@ -34,7 +27,7 @@ function run_propagation(cfg::EchoConfig=EchoConfig();
     z_vec = make_z_grid(cfg)
     dz = step(z_vec)
 
-    Omega = zeros(ComplexF64, length(time_vec), length(z_vec))
+    Omega = zeros(ComplexF64, length(time_vec), length(z_vec), length(y_vec))
     Omega[:, 1] .= omega_input.(time_vec)
     P = zeros(ComplexF64, length(time_vec), length(z_vec))
     sigma_temp = zeros(ComplexF64, 2, length(time_vec))

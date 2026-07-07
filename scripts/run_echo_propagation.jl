@@ -1,7 +1,6 @@
 import Pkg
 Pkg.activate(dirname(@__DIR__))
 
-include("../src/input_pulse_methods.jl")
 include("../src/echo_propagation.jl")
 
 cfg = EchoConfig()

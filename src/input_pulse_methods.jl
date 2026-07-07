@@ -1,40 +1,29 @@
-function pulse(
-    u,
-    center,
-    width,
-    area
-)
-    return area * (1 / (sqrt(2pi) * width)) * exp(-0.5 * ((u - center) / width)^2)
-end
+using Unitful
 
-function pulse(
-    u,
-    pulse_params
-)
-    center, width, area = pulse_params
-    pulse(u, center, width, area)
-end
+seconds(x::Real) = Float64(x)
+seconds(x::Unitful.AbstractQuantity) = ustrip(Float64, u"s", x)
 
+function pulse(u, center, width, area)
+    return area / (sqrt(2pi) * width) * exp(-0.5 * ((u - center) / width)^2)
+end
 
 struct PulseParams
-    center
-    width
-    area
+    center::Float64
+    width::Float64
+    area::Float64
 end
+
+PulseParams(; center, width, area) =
+    PulseParams(seconds(center), seconds(width), Float64(area))
+
+pulse(t, params::PulseParams) = pulse(t, params.center, params.width, params.area)
+
+pulse_sum(t, pulses::AbstractVector{<:PulseParams}) = sum(params -> pulse(t, params), pulses)
 
 function initialise_pulses(t_grid, y_grid, pulse_params)
-    tpp = (0.0, 0.0, 0.0)
-    ypp = (0.0, 0.0, 0.0)
-    pulses = zeros(Complex, length(t_grid), length(y_grid))
-    for i in eachindex(pulse_params)
-        tpp = pulse_params[i][1]
-        ypp = pulse_params[i][2]
-        pulses .+= pulse.(t_grid, tpp.center, tpp.width, tpp.area) .* pulse.(y_grid, ypp.center, ypp.width, ypp.area)'
+    pulses = zeros(ComplexF64, length(t_grid), length(y_grid))
+    for (t_params, y_params) in pulse_params
+        pulses .+= pulse.(t_grid, Ref(t_params)) .* pulse.(y_grid, Ref(y_params))'
     end
     return pulses
-end
-
-
-function flat_pulse(u,ui,uf)::Real
-    return (ui <= u && u <= uf)
 end
