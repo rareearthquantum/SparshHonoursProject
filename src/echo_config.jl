@@ -11,7 +11,7 @@ function default_echo_pulses(Ti::Real, Tf::Real)
     duration = Tf - Ti
     return PulseParams[
         PulseParams(Ti + duration/10, duration/25, pi/2),
-        PulseParams(Ti + duration/10, duration/100, pi),
+        PulseParams(Ti + 4duration/10, duration/100, pi),
     ]
 end
 
@@ -27,7 +27,7 @@ Base.@kwdef struct EchoConfig
 
     Nz::Int = 200
     Zi::Float64 = 0.0
-    Zf::Float64 = 10.0 * 50
+    Zf::Float64 = 10.0
 
     alpha::Float64 = 1.0
 end
