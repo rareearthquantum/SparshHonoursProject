@@ -1,0 +1,6 @@
+include("input_pulse_methods.jl")
+include("echo_2d_config.jl")
+include("echo_equations.jl")
+include("echo_integrators.jl")
+include("echo_2d_simulation.jl")
+include("echo_plotting.jl")

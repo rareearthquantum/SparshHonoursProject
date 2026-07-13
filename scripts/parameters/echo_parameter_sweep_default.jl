@@ -1,6 +1,6 @@
 pulses = PulseParams[
     PulseParams(center=1u"μs", width=0.4u"μs", area=pi/8),
-    PulseParams(center=4u"μs", width=0.1u"μs", area=pi),
+    PulseParams(center=4u"μs", width=0.1u"μs", area=pi)
 ]
 
 (

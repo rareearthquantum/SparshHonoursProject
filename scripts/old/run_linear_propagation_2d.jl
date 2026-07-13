@@ -19,6 +19,7 @@ const T_range = (0.0, 50micro)
 
 const y_pulse_width = 10micro
 const Y_width = 6*y_pulse_width*sqrt(1+(2*beta*Z_length/y_pulse_width^2)^2)
+@show Y_width
 const Y_range = (-Y_width / 2, Y_width / 2)
 
 const seperation = 40micro

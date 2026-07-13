@@ -10,26 +10,26 @@ coupling_si(x::Unitful.AbstractQuantity) = ustrip(Float64, u"s^-1*m^-1", x)
 function default_echo_pulses(Ti::Real, Tf::Real)
     duration = Tf - Ti
     return PulseParams[
-        PulseParams(Ti + duration/10, duration/25, pi/8),
-        PulseParams(Ti + 4duration/10, duration/100, pi),
+        PulseParams(Ti + duration/10, duration/25, pi/2),
+        PulseParams(Ti + duration/10, duration/100, pi),
     ]
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 500
+    Nt::Int = 1000
     Ti::Float64 = 0.0
     Tf::Float64 = 10.0
 
-    d_width::Float64 = detuning_width(Nt, Ti, Tf)
-    Nd::Int = detuning_count(Nt)
+    d_width::Float64 = detuning_width(max(1000,Nt), Ti, Tf)
+    Nd::Int = detuning_count(max(1000,Nt))
 
     pulses::Vector{PulseParams} = default_echo_pulses(Ti, Tf)
 
     Nz::Int = 200
     Zi::Float64 = 0.0
-    Zf::Float64 = 10.0
+    Zf::Float64 = 10.0 * 50
 
-    alpha::Float64 = 1.0e2
+    alpha::Float64 = 1.0
 end
 
 """Build a simulation window and grids from an ordered list of echo pulses."""

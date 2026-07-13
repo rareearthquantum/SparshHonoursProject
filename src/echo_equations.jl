@@ -37,3 +37,12 @@ function field!(dOmega, Omega, z, p)
 
     return nothing
 end
+
+
+function field_2d!(dOmega, Omega, z, p)
+    alpha, P_ky, rotfactor = p
+
+    @. dOmega = im * alpha * P_ky * rotfactor
+
+    return nothing
+end
