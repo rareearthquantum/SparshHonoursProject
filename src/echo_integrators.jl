@@ -53,20 +53,24 @@ end
 function rk4!(f, u, t_vec, p; substeps::Integer=1)
     substeps >= 1 || throw(ArgumentError("substeps must be at least 1"))
 
-    dt = step(t_vec) / substeps
+    dt = step(t_vec)
     cache = @views RK4Cache(u[:, 1])
     work = @views similar(u[:, 1])
 
     @inbounds for i in 1:(length(t_vec)-1)
-        @views copyto!(work, u[:, i])
+        @views rk4_step!(f, u[:, i+1], u[:, i], t_vec[i], dt, p, cache)
+    end
 
-        for substep in 1:(substeps-1)
-            t = t_vec[i] + (substep - 1) * dt
-            rk4_step!(f, work, work, t, dt, p, cache)
-        end
+    return nothing
+end
 
-        t = t_vec[i] + (substeps - 1) * dt
-        @views rk4_step!(f, u[:, i+1], work, t, dt, p, cache)
+
+function rk4_no_substeps!(f, u, t_vec, p)
+    dt = step(t_vec)
+    cache = @views RK4Cache(u[:, 1])
+
+    @inbounds for i in 1:(length(t_vec)-1)
+        @views rk4_step!(f, u[:, i+1], u[:, i], t_vec[i], dt, p, cache)
     end
 
     return nothing

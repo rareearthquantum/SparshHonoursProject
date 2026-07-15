@@ -39,10 +39,37 @@ function field!(dOmega, Omega, z, p)
 end
 
 
+
+function interp_half(values, vec, index)
+    index == lastindex(vec) && return values[index]
+
+    return 0.5 * values[index] + 0.5 * values[index+1]
+end
+
+
 function field_2d!(dOmega, Omega, z, p)
     alpha, P_ky, rotfactor = p
 
     @. dOmega = im * alpha * P_ky * rotfactor
+
+    return nothing
+end
+
+function atom_woah!(ds, s, t, p)
+    Omega, time_vec, rotate = p
+
+    index = searchsortedlast(time_vec, t)
+    if (index == 0)
+        index = searchsortedlast(time_vec, t - step(time_vec)/2)
+        Omega_t = interp_half(Omega, time_vec, index)
+        rotate_t = rotate[2index]
+    else
+        Omega_t = Omega[index]
+        rotate_t = rotate[2index-1]
+    end
+
+    ds[1] = -0.5im * Omega_t * s[2] * rotate_t
+    ds[2] = 2imag(conj(Omega_t) * s[1] * conj(rotate_t))
 
     return nothing
 end

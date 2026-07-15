@@ -27,7 +27,7 @@ Base.@kwdef struct EchoConfig
 
     Nz::Int = 200
     Zi::Float64 = 0.0
-    Zf::Float64 = 10.0
+    Zf::Float64 = 100.0
 
     alpha::Float64 = 1.0
 end

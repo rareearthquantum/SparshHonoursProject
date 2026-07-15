@@ -17,24 +17,24 @@ function default_echo_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 256 * 2
+    Nt::Int = 256 * 4
     Ti::Float64 = 0.0
     Tf::Float64 = 10.0
 
     d_width::Float64 = detuning_width(Nt, Ti, Tf)
     Nd::Int = detuning_count(Nt)
 
-    Nz::Int = 64
+    Nz::Int = 64 * 2
     Zi::Float64 = 0.0
     Zf::Float64 = 10.0
 
-    alpha::Float64 = 2.0
+    alpha::Float64 = 1.0
     beta::Float64 = 1.0
 
-    Ny::Int = 64 * 2
+    Ny::Int = 64 * 4
     y_pulse_width::Float64 = 1.0
-    Yi::Float64 = -100*y_pulse_width
-    Yf::Float64 = 100*y_pulse_width
+    Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
+    Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2
 
     pulses::Vector{NTuple{2,PulseParams}} = default_echo_2d_pulses(Ti, Tf; y_pulse_width)
 end

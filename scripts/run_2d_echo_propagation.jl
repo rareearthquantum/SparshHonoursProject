@@ -12,14 +12,15 @@ cfg = EchoConfig()
 
 fig = plot_2d_echo_snapshots(result)
 
+
 timestamp = Dates.format(now(), dateformat"yyyymmdd-HHMMSS-sss")
 output_dir = joinpath(dirname(@__DIR__), "plots", "prototype_echo_2d")
 mkpath(output_dir)
-plot_path = joinpath(output_dir, "$(timestamp)" * ".png")
+parameter_info = "_Nt=$(cfg.Nt)__Nd=$(cfg.Nd)__Nz=$(cfg.Nz)__Ny=$(cfg.Ny)_dwidth=$(cfg.d_width)_"
+plot_path = joinpath(output_dir, parameter_info, "$(timestamp)" * ".png")
 savefig(fig, plot_path)
 
-display(fig)
-sleep(5)
-
-plot_path = joinpath(output_dir, "$(timestamp)" * ".gif")
+plot_path = joinpath(output_dir, parameter_info, "$(timestamp)" * ".gif")
 animate_2d_echo(result; filename=plot_path)
+
+display(fig)

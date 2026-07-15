@@ -397,8 +397,9 @@ function plot_echo_transmission_and_efficiency_vs_optical_depth(result)
     input_pulse_max = result.cfg.pulses[1].area
     efficiencies = echo_intensity_maxes./input_pulse_max
 
-    fig = plot(result.z_vec, echo_intensity_maxes, label="Transmission")
-    plot!(result.z_vec, efficiencies, label="Efficiency")
+    fig = plot(result.z_vec, efficiencies, label="Efficiency", c=:blue)
+    #plot!(result.z_vec, sinh.(result.z_vec./50), label="sinh", linestyle=:dot, c=:orange)
+    #plot!(result.z_vec, min.(maximum(echo_intensity_maxes).*exp.(-(result.z_vec .- result.cfg.Zf/2)),maximum(echo_intensity_maxes)), label="exp", linestyle=:dot, c=:red)
 
     return fig
 end
@@ -436,12 +437,21 @@ function plot_propagation_super_compact(result; plot_size=(1540, 900))
             title="Output face", xlabel=time_label, ylim=omega_abs2_clims),
     )
 
-    line_plots = plot(panels[end-1], panels[end],layout=(2,1))
-    heatmaps = plot(panels[begin], panels[begin+1],layout=(2,1))
+    line_plot_input_pulse = plot(time, Omega_abs2[:,begin], label="Input face", ylim=omega_abs2_clims, title="Retrieval pulse scale")
+    plot!(time, Omega_abs2[:,end], label="Output face", xlabel=time_label, ylim=omega_abs2_clims)
+    input_clim = (0,cfg.pulses[begin].area^2)
+    line_plot_retrieval_pulse = plot(time, Omega_abs2[:,begin], label="Input face", ylim=input_clim, title="Input pulse scale")
+    plot!(time, Omega_abs2[:,end], label="Output face", xlabel=time_label, ylim=input_clim)
+    echo_clim = (0,cfg.pulses[begin].area^2)
+    line_plot_echo_pulse = plot(time, Omega_abs2[:,begin], label="Input face", ylim=input_clim)
+    plot!(time, Omega_abs2[:,end], label="Output face", xlabel=time_label, ylim=input_clim)
+
+    line_plots = plot(line_plot_input_pulse, line_plot_retrieval_pulse, layout=(1,2))
+    heatmaps = plot(panels[begin])
 
     return plot(heatmaps,line_plots;
         size=plot_size,
-        layout=(1, 2),
+        layout=(2, 1),
         link=:x,
         left_margin=2Plots.mm,
         right_margin=2Plots.mm,
