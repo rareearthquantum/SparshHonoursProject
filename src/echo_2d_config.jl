@@ -11,27 +11,26 @@ coupling_si(x::Unitful.AbstractQuantity) = ustrip(Float64, u"s^-1*m^-1", x)
 function default_echo_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + duration/10, duration/100, pi/2), PulseParams(0.0, y_pulse_width, 1.0))
-        (PulseParams(Ti + 4duration/10, duration/100, pi), PulseParams(0.0, y_pulse_width, 1.0))
+        (PulseParams(Ti + duration/10, duration/100, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 256 * 4
+    Nt::Int = 256
     Ti::Float64 = 0.0
     Tf::Float64 = 10.0
 
     d_width::Float64 = detuning_width(Nt, Ti, Tf)
     Nd::Int = detuning_count(Nt)
 
-    Nz::Int = 64 * 2
+    Nz::Int = 64
     Zi::Float64 = 0.0
-    Zf::Float64 = 10.0
+    Zf::Float64 = 10.0 * 10
 
     alpha::Float64 = 1.0
-    beta::Float64 = 1.0
+    beta::Float64 = 0.0
 
-    Ny::Int = 64 * 4
+    Ny::Int = 64
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
     Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2

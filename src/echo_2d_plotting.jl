@@ -2,7 +2,7 @@ using Plots
 
 
 
-function animate_2d_echo(result; filename="echo_2d.gif", fps=24)
+function animate_2d_echo(result; filename="echo_2d.gif", fps=30)
     field_intensity = abs2.(result.Omega)
     z_vec = result.z_vec
     y_vec = result.y_vec

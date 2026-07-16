@@ -43,14 +43,14 @@ end
 function interp_half(values, vec, index)
     index == lastindex(vec) && return values[index]
 
-    return 0.5 * values[index] + 0.5 * values[index+1]
+    return 0.5 * (values[index] + values[index+1])
 end
 
 
-function field_2d!(dOmega, Omega, z, p)
+function field_2d!(dOmega_ky, Omega, z, p)
     alpha, P_ky, rotfactor = p
 
-    @. dOmega = im * alpha * P_ky * rotfactor
+    @. dOmega_ky = im * alpha * P_ky * rotfactor
 
     return nothing
 end

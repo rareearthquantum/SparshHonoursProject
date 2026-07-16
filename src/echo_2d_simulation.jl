@@ -9,7 +9,7 @@ function compute_polarisation_column!(
     @inbounds for i in eachindex(detunings)
         fill!(sigma_temp, 0)
         sigma_temp[2, 1] = -1.0
-        rk4_no_substeps!(atom_woah!, sigma_temp, time_vec, (Omega_col, time_vec, rotate_sigma[i,:]))
+        rk4_no_substeps!(atom_woah!, sigma_temp, time_vec, (Omega_col, time_vec, rotate_sigma[i, :]))
         @views @. P_col += sigma_temp[1, :] * unrotate_grid[i, :]
     end
 
@@ -32,7 +32,7 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
     for l in eachindex(y_vec)
         Omega[:, 1, l] .= omega_2d_input.(time_vec, y_vec[l])
     end
-    Omega[:, 1, :] .= fftshift(fft(Omega[:, 1, :], 2), 2)
+    #Omega[:, 1, :] .= fftshift(fft(Omega[:, 1, :], 2), 2)
 
     P = zeros(ComplexF64, length(time_vec), length(z_vec), length(y_vec))
     sigma_temp = zeros(ComplexF64, 2, length(time_vec))
@@ -40,17 +40,20 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
     unrotate_grid = make_unrotate_grid(detunings, time_vec)
     field_caches = [@views AB2Cache(Omega[:, 1, l]) for l in eachindex(y_vec)]
 
-    ky_grid = 2pi .* fftshift(fftfreq(length(y_vec), 1/step(y_vec)))
+    ky_grid = 2pi .* fftfreq(length(y_vec), 1/step(y_vec))
     rotfactorgrid = [cis(cfg.beta*ky^2*z) for z in z_vec, ky in ky_grid]
+    inverse_rotfactorgrid = conj.(rotfactorgrid)
 
     P_ky = similar(P[:, 1, :])
+    Omega_ky = similar(Omega[:, 1, :])
+    Omega_ky2 = similar(Omega[:, 1, :])
 
-    rotate_sigma = Array{ComplexF64}(undef, Nd, 2Nt)
+    rotate_sigma = Array{ComplexF64}(undef, length(detunings), 2length(time_vec))
     halfdt = step(time_vec)/2
     for i in eachindex(detunings)
         for j in eachindex(time_vec)
-            rotate_sigma[i,2j-1] = cis(detunings[i]*time_vec[j])
-            rotate_sigma[i,2j] = cis(detunings[i]*(time_vec[j]+halfdt))
+            rotate_sigma[i, 2j-1] = cis(detunings[i]*time_vec[j])
+            rotate_sigma[i, 2j] = cis(detunings[i]*(time_vec[j]+halfdt))
         end
     end
 
@@ -60,19 +63,29 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
                 P[:, j, l], sigma_temp, Omega[:, j, l], detunings, unrotate_grid, time_vec, rotate_sigma)
         end
 
-        P_ky[:, :] = fftshift(fft(P[:, j, :], 2), 2)
+
+        P_ky[:, :] = fft(P[:, j, :], 2)
+        Omega_ky[:, :] .= fft(Omega[:, j, :], 2)
+        Omega_ky2[:, :] .= fft(Omega[:, j+1, :], 2)
 
         for l in eachindex(ky_grid)
             @views ab2_step!(
                 field_2d!,
-                Omega[:, j+1, l],
-                Omega[:, j, l],
+                Omega_ky2[:, l],
+                Omega_ky[:, l],
                 z_vec[j],
                 dz,
                 (cfg.alpha, P_ky[:, l], rotfactorgrid[j, l]),
                 field_caches[l],
             )
         end
+
+        for i in eachindex(time_vec)
+            @views Omega[i, j, :] .= ifft(Omega_ky[i,:].*inverse_rotfactorgrid[j, :])
+            @views Omega[i, j+1, :] .= ifft(Omega_ky2[i,:].*inverse_rotfactorgrid[j+1, :])
+        end
+        #ifft!(Omega[:, j, :], 2)
+        #ifft!(Omega[:, j+1, :], 2)
     end
 
     if compute_final_polarisation
@@ -82,13 +95,14 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
         end
     end
 
-    inverse_rotfactorgrid = conj.(rotfactorgrid)
+    #=
     for j in eachindex(z_vec)
         for i in eachindex(time_vec)
             @views Omega[i, j, :] .*= inverse_rotfactorgrid[j, :]
         end
     end
-    ifft!(Omega, 3)
+    Omega .= fftshift(ifft(Omega, 3),3)
+    =#
 
     return (;
         cfg, detunings, time_vec, z_vec, y_vec, Omega, P,
