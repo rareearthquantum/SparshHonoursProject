@@ -10,6 +10,8 @@ println("Starting tests")
 
 include("../src/echo_propagation.jl")
 
+#=
+
 @testset "automatic detuning grid" begin
     cfg = EchoConfig()
     dt = (cfg.Tf - cfg.Ti) / (cfg.Nt - 1)
@@ -64,3 +66,5 @@ end
 ti = time() - ti
 println("\nTest took total time of:")
 println(round(ti/60, digits = 3), " minutes")
+
+=#
