@@ -9,7 +9,7 @@ function compute_polarisation_column!(
     @inbounds for i in eachindex(detunings)
         fill!(sigma_temp, 0)
         sigma_temp[2, 1] = -1.0
-        rk4_no_substeps!(atom_woah!, sigma_temp, time_vec, (Omega_col, time_vec, rotate_sigma[i, :]))
+        rk4_new!(atom_woah_new!, sigma_temp, time_vec, (Omega_col, time_vec, rotate_sigma[i, :]))
         @views @. P_col += sigma_temp[1, :] * unrotate_grid[i, :]
     end
 
@@ -46,7 +46,7 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
 
     P_ky = similar(P[:, 1, :])
     Omega_ky = similar(Omega[:, 1, :])
-    Omega_ky2 = similar(Omega[:, 1, :])
+    #Omega_ky2 = similar(Omega[:, 1, :])
 
     rotate_sigma = Array{ComplexF64}(undef, length(detunings), 2length(time_vec))
     halfdt = step(time_vec)/2
@@ -64,14 +64,14 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
         end
 
 
-        P_ky[:, :] = fft(P[:, j, :], 2)
+        P_ky[:, :] .= fft(P[:, j, :], 2)
         Omega_ky[:, :] .= fft(Omega[:, j, :], 2)
-        Omega_ky2[:, :] .= fft(Omega[:, j+1, :], 2)
+        #Omega_ky2[:, :] .= fft(, 2)
 
         for l in eachindex(ky_grid)
             @views ab2_step!(
                 field_2d!,
-                Omega_ky2[:, l],
+                Omega[:, j+1, l],
                 Omega_ky[:, l],
                 z_vec[j],
                 dz,
@@ -81,11 +81,9 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
         end
 
         for i in eachindex(time_vec)
-            @views Omega[i, j, :] .= ifft(Omega_ky[i,:].*inverse_rotfactorgrid[j, :])
-            @views Omega[i, j+1, :] .= ifft(Omega_ky2[i,:].*inverse_rotfactorgrid[j+1, :])
+            #@views Omega[i, j, :] .= ifft(Omega_ky[i,:].*inverse_rotfactorgrid[j, :])
+            @views Omega[i, j+1, :] .= ifft(Omega[i,j+1,:].*inverse_rotfactorgrid[j+1, :])
         end
-        #ifft!(Omega[:, j, :], 2)
-        #ifft!(Omega[:, j+1, :], 2)
     end
 
     if compute_final_polarisation
@@ -94,15 +92,6 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
                 P[:, end, l], sigma_temp, Omega[:, end, l], detunings, unrotate_grid, time_vec, rotate_sigma)
         end
     end
-
-    #=
-    for j in eachindex(z_vec)
-        for i in eachindex(time_vec)
-            @views Omega[i, j, :] .*= inverse_rotfactorgrid[j, :]
-        end
-    end
-    Omega .= fftshift(ifft(Omega, 3),3)
-    =#
 
     return (;
         cfg, detunings, time_vec, z_vec, y_vec, Omega, P,

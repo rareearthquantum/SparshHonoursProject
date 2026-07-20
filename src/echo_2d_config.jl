@@ -11,7 +11,15 @@ coupling_si(x::Unitful.AbstractQuantity) = ustrip(Float64, u"s^-1*m^-1", x)
 function default_echo_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + duration/10, duration/100, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
+        (PulseParams(Ti + duration/10, duration/25, pi/2), PulseParams(0.0, y_pulse_width, 1.0)),
+        (PulseParams(Ti + 4duration/10, duration/100, pi), PulseParams(0.0, y_pulse_width, 1.0))
+    ]
+end
+
+function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
+    duration = Tf - Ti
+    return [
+        (PulseParams(Ti + 3duration/10, duration/10, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
@@ -25,17 +33,17 @@ Base.@kwdef struct EchoConfig
 
     Nz::Int = 64
     Zi::Float64 = 0.0
-    Zf::Float64 = 10.0 * 10
+    Zf::Float64 = 10.0
 
-    alpha::Float64 = 1.0
-    beta::Float64 = 0.0
+    alpha::Float64 = 0.0
+    beta::Float64 = 1.0e-2
 
     Ny::Int = 64
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
     Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2
 
-    pulses::Vector{NTuple{2,PulseParams}} = default_echo_2d_pulses(Ti, Tf; y_pulse_width)
+    pulses::Vector{NTuple{2,PulseParams}} = default_soliton_2d_pulses(Ti, Tf; y_pulse_width)
 end
 
 make_detunings(cfg::EchoConfig) = LinRange(-cfg.d_width/2, cfg.d_width/2, cfg.Nd)

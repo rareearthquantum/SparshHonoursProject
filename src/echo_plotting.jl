@@ -459,3 +459,17 @@ function plot_propagation_super_compact(result; plot_size=(1540, 900))
         bottom_margin=3Plots.mm,
     )
 end
+
+
+function plot_total_energy_vs_optical_depth(result)
+    Omega_ndims = ndims(result.Omega)
+    if Omega_ndims == 2
+        total_energy = vec(sum(abs2.(result.Omega),dims=1))
+        title = "total energy transmission, 1d propagation"
+    elseif Omega_ndims == 3
+        total_energy = vec(sum(sum(abs2.(result.Omega),dims=3),dims=1))
+        title = "total energy transmission, 2d propagation"
+    end
+    
+    plot(result.z_vec, total_energy, ylabel="total energy (not quite)", xlabel="z")
+end

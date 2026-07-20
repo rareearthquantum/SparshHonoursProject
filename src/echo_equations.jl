@@ -46,8 +46,7 @@ function interp_half(values, vec, index)
     return 0.5 * (values[index] + values[index+1])
 end
 
-
-function field_2d!(dOmega_ky, Omega, z, p)
+function field_2d!(dOmega_ky, Omega_ky, z, p)
     alpha, P_ky, rotfactor = p
 
     @. dOmega_ky = im * alpha * P_ky * rotfactor
@@ -59,13 +58,34 @@ function atom_woah!(ds, s, t, p)
     Omega, time_vec, rotate = p
 
     index = searchsortedlast(time_vec, t)
-    if (index == 0)
-        index = searchsortedlast(time_vec, t - step(time_vec)/2)
-        Omega_t = interp_half(Omega, time_vec, index)
-        rotate_t = rotate[2index]
-    else
+    if (insorted(t, time_vec))
         Omega_t = Omega[index]
-        rotate_t = rotate[2index-1]
+        rotate_t = rotate[2index-1] #odd indices are just regular
+    else
+        Omega_t = interp_half(Omega, time_vec, index)
+        rotate_t = rotate[2index] #even indices are half time stepped forward 
+    end
+
+    ds[1] = -0.5im * Omega_t * s[2] * rotate_t
+    ds[2] = 2imag(conj(Omega_t) * s[1] * conj(rotate_t))
+
+    return nothing
+end
+
+
+
+function atom_woah_new!(ds, s, p, whichstep, index)
+    Omega, time_vec, rotate = p
+
+    if (whichstep.first)
+        Omega_t = Omega[index]
+        rotate_t = rotate[2index-1] #odd indices are just regular
+    elseif (whichstep.half)
+        Omega_t = interp_half(Omega, time_vec, index)
+        rotate_t = rotate[2index] #even indices are half time stepped forward 
+    elseif (whichstep.last)
+        Omega_t = Omega[index+1]
+        rotate_t = rotate[2index+1] #odd indices are just regular
     end
 
     ds[1] = -0.5im * Omega_t * s[2] * rotate_t
