@@ -471,5 +471,5 @@ function plot_total_energy_vs_optical_depth(result)
         title = "total energy transmission, 2d propagation"
     end
     
-    plot(result.z_vec, total_energy, ylabel="total energy (not quite)", xlabel="z")
+    plot(result.z_vec, total_energy, ylabel="total energy (not quite)", xlabel="z", ylims=(0.8*minimum(total_energy),1.2*maximum(total_energy)))
 end

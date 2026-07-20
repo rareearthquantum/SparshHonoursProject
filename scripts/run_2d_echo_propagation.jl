@@ -46,7 +46,7 @@ for i in eachindex(result.z_vec)
     Omega_abs2_zmaxes[i] = maximum(abs2.(result.Omega[:,i,end÷2]))
 end
 
-fig2 = plot(result.z_vec, Omega_abs2_zmaxes, xlabel="z", ylabel="time max of intensity at y=0")
+fig2 = plot(result.z_vec, Omega_abs2_zmaxes, xlabel="z", ylabel="time max of intensity at y=0", ylims=(0.8*minimum(Omega_abs2_zmaxes),1.2*maximum(Omega_abs2_zmaxes)))
 otherplot_output_dir = joinpath(plot_output_dir, "otherplots")
 mkpath(otherplot_output_dir)
 otherplot_path = joinpath(otherplot_output_dir, "time_max_vs_z_$(timestamp)" * parameter_info * ".png")
@@ -57,5 +57,3 @@ fig_energy_transmission = plot_total_energy_vs_optical_depth(result)
 energy_transmission_plot_path = joinpath(otherplot_output_dir, "energy_transmission_$(timestamp)" * parameter_info * ".png")
 savefig(fig_energy_transmission, energy_transmission_plot_path)
 println("Saved energy transmission plot to /plots/otherplots/")
-
-display(fig)

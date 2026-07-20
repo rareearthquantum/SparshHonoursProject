@@ -1,16 +1,16 @@
 using FFTW
 
-make_unrotate_grid(detunings, time_vec) = [cis(-detuning * t) for detuning in detunings, t in time_vec]
+make_unrotate_sigma_grid(detunings, time_vec) = [cis(-detuning * t) for detuning in detunings, t in time_vec]
 
 function compute_polarisation_column!(
-    P_col, sigma_temp, Omega_col, detunings, unrotate_grid, time_vec, rotate_sigma)
+    P_col, sigma_temp, Omega_col, detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
     fill!(P_col, 0)
 
     @inbounds for i in eachindex(detunings)
         fill!(sigma_temp, 0)
         sigma_temp[2, 1] = -1.0
         rk4_new!(atom_woah_new!, sigma_temp, time_vec, (Omega_col, time_vec, rotate_sigma[i, :]))
-        @views @. P_col += sigma_temp[1, :] * unrotate_grid[i, :]
+        @views @. P_col += sigma_temp[1, :] * unrotate_sigma_grid[i, :]
     end
 
     P_col ./= length(detunings)
@@ -37,12 +37,15 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
     P = zeros(ComplexF64, length(time_vec), length(z_vec), length(y_vec))
     sigma_temp = zeros(ComplexF64, 2, length(time_vec))
 
-    unrotate_grid = make_unrotate_grid(detunings, time_vec)
+    unrotate_sigma_grid = make_unrotate_sigma_grid(detunings, time_vec)
     field_caches = [@views AB2Cache(Omega[:, 1, l]) for l in eachindex(y_vec)]
 
     ky_grid = 2pi .* fftfreq(length(y_vec), 1/step(y_vec))
     rotfactorgrid = [cis(cfg.beta*ky^2*z) for z in z_vec, ky in ky_grid]
     inverse_rotfactorgrid = conj.(rotfactorgrid)
+
+    rotfactorgrid_diff = [cis(cfg.beta*ky^2*dz) for ky in ky_grid]
+    inverse_rotfactorgrid_diff = conj.(rotfactorgrid_diff)
 
     P_ky = similar(P[:, 1, :])
     Omega_ky = similar(Omega[:, 1, :])
@@ -60,7 +63,7 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
     @inbounds for j in 1:(length(z_vec)-1)
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P[:, j, l], sigma_temp, Omega[:, j, l], detunings, unrotate_grid, time_vec, rotate_sigma)
+                P[:, j, l], sigma_temp, Omega[:, j, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
         end
 
 
@@ -75,21 +78,22 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
                 Omega_ky[:, l],
                 z_vec[j],
                 dz,
-                (cfg.alpha, P_ky[:, l], rotfactorgrid[j, l]),
-                field_caches[l],
+                (cfg.alpha, P_ky[:, l], rotfactorgrid_diff[l]),
+                field_caches[l]
             )
         end
 
         for i in eachindex(time_vec)
             #@views Omega[i, j, :] .= ifft(Omega_ky[i,:].*inverse_rotfactorgrid[j, :])
-            @views Omega[i, j+1, :] .= ifft(Omega[i,j+1,:].*inverse_rotfactorgrid[j+1, :])
+            @views Omega[i, j+1, :] .= ifft(Omega[i,j+1,:].*inverse_rotfactorgrid_diff[:])
         end
+
     end
 
     if compute_final_polarisation
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P[:, end, l], sigma_temp, Omega[:, end, l], detunings, unrotate_grid, time_vec, rotate_sigma)
+                P[:, end, l], sigma_temp, Omega[:, end, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
         end
     end
 
