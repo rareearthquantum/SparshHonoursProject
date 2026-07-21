@@ -18,9 +18,11 @@ function compute_polarisation_column!(
     return nothing
 end
 
-function run_2d_propagation(cfg::EchoConfig=EchoConfig();
+function run_2d_propagation(
+    cfg::EchoConfig=EchoConfig();
     omega_2d_input=make_omega_2d_input(cfg),
-    compute_final_polarisation::Bool=true)
+    compute_final_polarisation::Bool=true
+    )
 
     detunings = make_detunings(cfg)
     time_vec = make_time_grid(cfg)
@@ -40,7 +42,7 @@ function run_2d_propagation(cfg::EchoConfig=EchoConfig();
     unrotate_sigma_grid = make_unrotate_sigma_grid(detunings, time_vec)
     field_caches = [@views AB2Cache(Omega[:, 1, l]) for l in eachindex(y_vec)]
 
-    ky_grid = 2pi .* fftfreq(length(y_vec), 1/step(y_vec))
+    ky_grid = make_ky_grid(cfg)
     rotfactorgrid = [cis(cfg.beta*ky^2*z) for z in z_vec, ky in ky_grid]
     inverse_rotfactorgrid = conj.(rotfactorgrid)
 
