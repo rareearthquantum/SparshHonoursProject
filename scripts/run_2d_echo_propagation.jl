@@ -33,9 +33,10 @@ plot_n_save(func, name) = save_plot(result, func, plot_output_dir, name; paramet
 
 
 # Plotting
-#plot_n_save(plot_sum_omega, "energy")
+plot_n_save(plot_sum_omega, "energy")
 #plot_n_save(x -> plot_sum_omega(x; operation=real), "area")
-plot_n_save(x -> plot_soliton_lineshapes(x;nslices=5), "soliton_lineshapes")
+plot_n_save(x -> plot_soliton_z_lineshapes(x;nslices=4), "soliton_lineshapes")
+#plot_n_save(x -> plot_soliton_t_lineshapes(x;nslices=10), "soliton_lineshapes")
 #plot_n_save(animate_field_2d, "anim")
 
 # Saving jld2 data

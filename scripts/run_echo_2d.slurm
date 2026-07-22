@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=echo-2d-propagation
+#SBATCH --job-name=maxwell-bloch-2d-propagation
 #SBATCH --output=data/slurm/echo-2d-propagation-%j.out
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -14,7 +14,7 @@
 set -euo pipefail
 
 cd "${SLURM_SUBMIT_DIR:?Submit this job from the project root}"
-mkdir -p data/slurm_data/echo_2d_propagation
+mkdir -p data/slurm_data/maxwell-bloch_2d_propagation
 
 export JULIA_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export GKSwstype=100
@@ -24,4 +24,4 @@ echo "Working directory: $(pwd)"
 
 julia --project=. scripts/run_2d_echo_propagation.jl
 
-echo "Echo 2D propagation finished at $(date)"
+echo "Maxwell Bloch 2D propagation finished at $(date)"

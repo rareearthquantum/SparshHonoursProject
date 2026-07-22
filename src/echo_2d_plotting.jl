@@ -70,18 +70,18 @@ function animate_field_2d(result; filename="echo_2d.gif", fps=30, operation=abs2
 end
 
 
-function plot_soliton_lineshapes(result; nslices=5, operation=abs2)
+function plot_soliton_z_lineshapes(result; nslices=5, operation=abs2)
     nslices = clamp(nslices, 1, 10)
 
-    Omega_tz = result.Omega[:, :, end÷2+1]
+    Omega_tz = operation.(result.Omega[:, :, end÷2+1])
     t_vec = result.time_vec
 
     fig_vec = Array{Plots.Plot}(undef, nslices)
-    fig_begin = plot(t_vec, operation.(Omega_tz[:, begin]); label=false, xticks=false, yticks=false, c=:black)
+    fig_begin = plot(t_vec, Omega_tz[:, begin]; label=false, xticks=false, yticks=false, c=:black, ylims=extrema(Omega_tz))
     delta = cfg.Nz / nslices
     for i in 1:nslices
         zindex = floor(Int, delta*i)
-        fig_vec[i] = plot(t_vec, operation.(Omega_tz[:, zindex]); label=false, xticks=false, yticks=false, c=:black)
+        fig_vec[i] = plot(t_vec, Omega_tz[:, zindex]; label=false, xticks=false, yticks=false, c=:black, ylims=extrema(Omega_tz))
     end
 
     title_str = string(nameof(operation)) * " of Omega"
@@ -91,9 +91,34 @@ function plot_soliton_lineshapes(result; nslices=5, operation=abs2)
     return fig
 end
 
+function plot_soliton_t_lineshapes(result; nslices=10, operation=abs2)
+    nslices = clamp(nslices, 1, 10)
+
+    Omega_tz = operation.(result.Omega[:, :, end÷2+1])
+    z_vec = result.z_vec
+
+    fig_vec = Array{Plots.Plot}(undef, nslices)
+    fig_begin = plot(z_vec, Omega_tz[begin, :]; label=false, xticks=false, yticks=false, c=:black, ylims=extrema(Omega_tz))
+    delta = cfg.Nt / nslices
+    for i in 1:nslices
+        tindex = floor(Int, delta*i)
+        fig_vec[i] = plot(z_vec, Omega_tz[tindex, :]; label=false, xticks=false, yticks=false, c=:black, ylims=extrema(Omega_tz))
+    end
+
+    title_str = string(nameof(operation)) * " of Omega"
+
+    fig = plot(fig_begin, fig_vec...; layout=(nslices+1, 1), size=(400, nslices*100))
+
+    return fig
+end
+
+
+
 function plot_sum_omega(result; operation=abs2)
     total = vec(sum(sum(operation.(result.Omega), dims=3), dims=1))
     title_str = "Sum of " * string(nameof(operation)) * " Omega"
 
-    plot(result.z_vec, total, title=title_str, xlabel="z", ylims=(0.8*minimum(total), 1.2*maximum(total)))
+    plot(result.z_vec, total, title=title_str, label=false, xlabel="z", ylims=(0.8*minimum(total), 1.2*maximum(total)))
 end
+
+
