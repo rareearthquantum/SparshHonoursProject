@@ -14,6 +14,7 @@ function save_plot(result, plot, plot_output_dir, subdir_name; parameter_info="p
     (timestamp == "placeholder") && (timestamp=Dates.format(now(), dateformat"yyyymmdd-HHMMSS-sss");)
 
     fig = plot(result)
+    (isnothing(fig)) && (return nothing)
 
     animbool = typeof(fig) <: Animation
     extension = (animbool) ? ".gif" : ".png"
@@ -26,7 +27,6 @@ function save_plot(result, plot, plot_output_dir, subdir_name; parameter_info="p
 
     path_elems = split(plot_path, "/")
     path_from_projroot = path_elems[end-2] * "/" * path_elems[end-1] * "/"
-
     println("Saved " * type * " to directory .../PROJECT_ROOT/" * path_from_projroot);
 end;
 
@@ -69,8 +69,8 @@ function animate_field_2d(result; filename="echo_2d.gif", fps=30, operation=abs2
     return anim;
 end
 
-
 function plot_soliton_z_lineshapes(result; nslices=5, operation=abs2)
+    (result.cfg.Nz==1) && (return plot(result.time_vec, operation.(result.P[:,1,1]); label=false, xticks=false, yticks=false, c=:black, title="Polarisation"))
     nslices = clamp(nslices, 1, 10)
 
     Omega_tz = operation.(result.Omega[:, :, end÷2+1])
@@ -115,10 +115,9 @@ end
 
 
 function plot_sum_omega(result; operation=abs2)
+    (result.cfg.Nz==1) && (return nothing)
     total = vec(sum(sum(operation.(result.Omega), dims=3), dims=1))
     title_str = "Sum of " * string(nameof(operation)) * " Omega"
 
     plot(result.z_vec, total, title=title_str, label=false, xlabel="z", ylims=(0.8*minimum(total), 1.2*maximum(total)))
 end
-
-

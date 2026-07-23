@@ -31,11 +31,11 @@ Base.@kwdef struct EchoConfig
     d_width::Float64 = detuning_width(Nt, Ti, Tf)
     Nd::Int = detuning_count(Nt)
 
-    Nz::Int = 64 * 2
+    Nz::Int = 1
     Zi::Float64 = 0.0
     Zf::Float64 = 10.0
 
-    alpha::Float64 = 1.0e1
+    alpha::Float64 = 1.0
     beta::Float64 = 0.0
 
     Ny::Int = 1
@@ -43,12 +43,12 @@ Base.@kwdef struct EchoConfig
     Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
     Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2
 
-    pulses::Vector{NTuple{2,PulseParams}} = default_soliton_2d_pulses(Ti, Tf; y_pulse_width)
+    pulses::Vector{NTuple{2,PulseParams}} = default_echo_2d_pulses(Ti, Tf; y_pulse_width)
 end
 
 make_detunings(cfg::EchoConfig) = LinRange(-cfg.d_width/2, cfg.d_width/2, cfg.Nd)
 make_time_grid(cfg::EchoConfig) = LinRange(cfg.Ti, cfg.Tf, cfg.Nt)
-make_z_grid(cfg::EchoConfig) = LinRange(cfg.Zi, cfg.Zf, cfg.Nz)
+make_z_grid(cfg::EchoConfig) = (cfg.Nz==1) ? [0.0] : LinRange(cfg.Zi, cfg.Zf, cfg.Nz)
 make_y_grid(cfg::EchoConfig) = (cfg.Ny==1) ? [0.0] : LinRange(cfg.Yi, cfg.Yf, cfg.Ny)
-make_ky_grid(cfg::EchoConfig) = (cfg.Ny==1) ? [0.0] : 2pi .* fftfreq(cfg.Ny, (cfg.Ny - 1 ) / (cfg.Yf - cfg.Yi))
-make_omega_2d_input(cfg::EchoConfig) = (t,y) -> pulse_2d_sum(t, y, cfg.pulses)
+make_ky_grid(cfg::EchoConfig) = (cfg.Ny==1) ? [0.0] : 2pi .* fftfreq(cfg.Ny, (cfg.Ny - 1) / (cfg.Yf - cfg.Yi))
+make_omega_2d_input(cfg::EchoConfig) = (t, y) -> pulse_2d_sum(t, y, cfg.pulses)
