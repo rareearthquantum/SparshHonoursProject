@@ -19,23 +19,23 @@ end
 function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 3duration/10, duration/10, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
+        (PulseParams(Ti + 3duration/40, duration/40, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 256
+    Nt::Int = 256 * 4
     Ti::Float64 = 0.0
-    Tf::Float64 = 10.0
+    Tf::Float64 = 10.0 * 4
 
-    d_width::Float64 = detuning_width(Nt, Ti, Tf)
-    Nd::Int = detuning_count(Nt)
+    d_width::Float64 = detuning_width(256, Ti, Tf)
+    Nd::Int = detuning_count(256)
 
-    Nz::Int = 64
+    Nz::Int = 64 * 4
     Zi::Float64 = 0.0
     Zf::Float64 = 10.0
 
-    alpha::Float64 = 1.0e1
+    alpha::Float64 = 1.0e1 * 2
     beta::Float64 = 0.0
 
     Ny::Int = 64

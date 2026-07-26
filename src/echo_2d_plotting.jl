@@ -225,14 +225,16 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
     ylims = extrema(Omega)
 
-    colgrad = cgrad([:blue,:yellow,:red])
-    colors = colgrad[range(0,1,length=nslices)]
-    fig = plot(; xlabel="t", title=title, legend=false, ylims=ylims)
+    colgrad = cgrad([:blue, :yellow, :red])
+    colors = colgrad[range(0, 1, length=nslices)]
+    fig = plot(; xlabel="t", title=title, ylims=ylims)
+
+    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
 
     delta = floor(Int, length(z_vec) / nslices)
 
     for i in 1:nslices
-        plot!(t_vec, Omega[:, i*delta], c=colors[i])
+        plot!(t_vec, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
     end
 
     return fig
@@ -242,7 +244,7 @@ function plots_for_jevon(result)
     heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
     area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
     energy = plot_2d_z_ysum_line(result; operation=abs2, title="Total pulse energy")
-    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title="Pulse intensity slices in z")
+    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z")
 
     return plot(heatmap, area, superimposed, energy, layout=(2, 2), size=(1200, 1000))
 end
