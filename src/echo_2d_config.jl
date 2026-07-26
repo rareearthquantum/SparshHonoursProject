@@ -19,7 +19,7 @@ end
 function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 3duration/10, duration/10, 6pi), PulseParams(0.0, y_pulse_width, 1.0))
+        (PulseParams(Ti + 3duration/10, duration/10, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
@@ -31,19 +31,19 @@ Base.@kwdef struct EchoConfig
     d_width::Float64 = detuning_width(Nt, Ti, Tf)
     Nd::Int = detuning_count(Nt)
 
-    Nz::Int = 1
+    Nz::Int = 64
     Zi::Float64 = 0.0
     Zf::Float64 = 10.0
 
-    alpha::Float64 = 1.0
+    alpha::Float64 = 1.0e1
     beta::Float64 = 0.0
 
-    Ny::Int = 1
+    Ny::Int = 64
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
     Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2
 
-    pulses::Vector{NTuple{2,PulseParams}} = default_echo_2d_pulses(Ti, Tf; y_pulse_width)
+    pulses::Vector{NTuple{2,PulseParams}} = default_soliton_2d_pulses(Ti, Tf; y_pulse_width)
 end
 
 make_detunings(cfg::EchoConfig) = LinRange(-cfg.d_width/2, cfg.d_width/2, cfg.Nd)

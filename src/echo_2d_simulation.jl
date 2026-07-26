@@ -128,11 +128,16 @@ function run_simulation(cfg)
 
 
     # Plotting
-    plot_n_save(plot_sum_omega, "energy")
+    #plot_n_save(plot_sum_omega, "energy")
     #plot_n_save(x -> plot_sum_omega(x; operation=real), "area")
-    plot_n_save(x -> plot_soliton_z_lineshapes(x;nslices=4), "soliton_lineshapes")
-    #plot_n_save(x -> plot_soliton_t_lineshapes(x;nslices=10), "soliton_lineshapes")
+    #plot_n_save(x -> plot_soliton_z_lineshapes(x;nslices=4), "soliton_lineshapes")
+    #plot_n_save(x -> plot_superimposed_lineshapes(x; constdim=(3,result.cfg.Ny÷2+1), nslices=10), "superimposed_slices")
     #plot_n_save(animate_field_2d, "anim")
+
+    #plot_n_save(plot_2d_tz_ysum_heatmap, "testing")
+    #plot_n_save(x -> plot_2d_z_ysum_line(x; operation=abs2), "testing")
+    #plot_n_save(x -> plot_2d_z_ysum_line(x; operation=real), "testing")
+    plot_n_save(plots_for_jevon, "testing")
 
     # Saving jld2 data
     #save_data(result, elapsed, "prop_2d")

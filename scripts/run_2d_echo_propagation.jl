@@ -1,3 +1,4 @@
+println("Script running.")
 import Pkg
 Pkg.activate(dirname(@__DIR__))
 
@@ -9,5 +10,6 @@ include("../src/echo_saving.jl")
 
 # Init config
 cfg = EchoConfig()
+println("Config initialised.")
 
 run_simulation(cfg)
