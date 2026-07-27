@@ -215,7 +215,7 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default)
     z_vec = result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y and t" : title
     Omega_z = vec(sum(Omega; dims=1))
-    Omega ./= maximum(Omega_z)
+    Omega_z ./= maximum(Omega_z)
     min, max = extrema(Omega_z)
     ylims = (0.0, max+0.2abs(max))
     
