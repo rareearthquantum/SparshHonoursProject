@@ -1,5 +1,7 @@
 using FFTW
 
+current_runtime(start_time) = round(time() - start_time; digits=2)
+
 make_unrotate_sigma_grid(detunings, time_vec) = [cis(-detuning * t) for detuning in detunings, t in time_vec]
 
 function compute_polarisation_column!(
@@ -34,7 +36,6 @@ function run_2d_propagation(
     for l in eachindex(y_vec)
         Omega[:, 1, l] .= omega_2d_input.(time_vec, y_vec[l])
     end
-    #Omega[:, 1, :] .= fftshift(fft(Omega[:, 1, :], 2), 2)
 
     P = zeros(ComplexF64, length(time_vec), length(z_vec), length(y_vec))
     sigma_temp = zeros(ComplexF64, 2, length(time_vec))
@@ -43,15 +44,11 @@ function run_2d_propagation(
     field_caches = [@views AB2Cache(Omega[:, 1, l]) for l in eachindex(y_vec)]
 
     ky_grid = make_ky_grid(cfg)
-    rotfactorgrid = [cis(cfg.beta*ky^2*z) for z in z_vec, ky in ky_grid]
-    inverse_rotfactorgrid = conj.(rotfactorgrid)
-
     rotfactorgrid_diff = [cis(cfg.beta*ky^2*dz) for ky in ky_grid]
     inverse_rotfactorgrid_diff = conj.(rotfactorgrid_diff)
 
     P_ky = similar(P[:, 1, :])
     Omega_ky = similar(Omega[:, 1, :])
-    #Omega_ky2 = similar(Omega[:, 1, :])
 
     rotate_sigma = Array{ComplexF64}(undef, length(detunings), 2length(time_vec))
     halfdt = step(time_vec)/2
@@ -62,6 +59,9 @@ function run_2d_propagation(
         end
     end
 
+    number_of_tenpercents = 0
+    percentdone(j) = (j%(length(z_vec)÷10)==0) ? (number_of_tenpercents+=1;println("$(number_of_tenpercents*10)% complete after after $(current_runtime(start_time))s");) : return nothing
+
     @inbounds for j in 1:(length(z_vec)-1)
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
@@ -70,7 +70,6 @@ function run_2d_propagation(
 
         P_ky[:, :] .= fft(P[:, j, :], 2)
         Omega_ky[:, :] .= fft(Omega[:, j, :], 2)
-        #Omega_ky2[:, :] .= fft(, 2)
 
         for l in eachindex(ky_grid)
             @views ab2_step!(
@@ -85,10 +84,10 @@ function run_2d_propagation(
         end
 
         for i in eachindex(time_vec)
-            #@views Omega[i, j, :] .= ifft(Omega_ky[i,:].*inverse_rotfactorgrid[j, :])
             @views Omega[i, j+1, :] .= ifft(Omega[i,j+1,:].*inverse_rotfactorgrid_diff[:])
         end
 
+        percentdone(j)
     end
 
     if compute_final_polarisation

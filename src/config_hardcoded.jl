@@ -16,32 +16,32 @@ function default_echo_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
     ]
 end
 
-function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
+function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 3duration/40, duration/40, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
+        (PulseParams(3.0, 1.0, 2pi), PulseParams(0.0, 1.0, 1.0))
     ]
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 256 * 4
+    Nt::Int = 1024
     Ti::Float64 = 0.0
-    Tf::Float64 = 40.0
+    Tf::Float64 = 10.0
 
-    d_width::Float64 = detuning_width(256, Ti, Tf)
-    Nd::Int = detuning_count(256)
+    d_width::Float64 = 128
+    Nd::Int = 256
 
-    Nz::Int = 64 * 4
+    Nz::Int = 256
     Zi::Float64 = 0.0
     Zf::Float64 = 10.0
 
-    alpha::Float64 = 1.0e1 * 2
+    alpha::Float64 = 10.0
     beta::Float64 = 0.0
 
-    Ny::Int = 64
+    Ny::Int = 128
     y_pulse_width::Float64 = 1.0
-    Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
-    Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2
+    Yi::Float64 = -4*y_pulse_width
+    Yf::Float64 = 4*y_pulse_width
 
     pulses::Vector{NTuple{2,PulseParams}} = default_soliton_2d_pulses(Ti, Tf; y_pulse_width)
 end
