@@ -24,7 +24,9 @@ function run_2d_propagation(
     cfg::EchoConfig=EchoConfig();
     omega_2d_input=make_omega_2d_input(cfg),
     compute_final_polarisation::Bool=true
-    )
+)
+
+    start_time = time()
 
     detunings = make_detunings(cfg)
     time_vec = make_time_grid(cfg)
@@ -59,8 +61,7 @@ function run_2d_propagation(
         end
     end
 
-    number_of_tenpercents = 0
-    percentdone(j) = (j%(length(z_vec)÷10)==0) ? (number_of_tenpercents+=1;println("$(number_of_tenpercents*10)% complete after after $(current_runtime(start_time))s");) : return nothing
+    percent_count = 1
 
     @inbounds for j in 1:(length(z_vec)-1)
         for l in eachindex(y_vec)
@@ -84,10 +85,14 @@ function run_2d_propagation(
         end
 
         for i in eachindex(time_vec)
-            @views Omega[i, j+1, :] .= ifft(Omega[i,j+1,:].*inverse_rotfactorgrid_diff[:])
+            @views Omega[i, j+1, :] .= ifft(Omega[i, j+1, :] .* inverse_rotfactorgrid_diff[:])
         end
 
-        percentdone(j)
+        if (j%(length(z_vec)÷10)==0)
+            println("$(percent_count*10)% complete in $(current_runtime(start_time))s")
+            percent_count += 1
+        end
+
     end
 
     if compute_final_polarisation
@@ -109,8 +114,8 @@ function run_simulation(cfg)
 
     # Take results
     result = stats.value
-    elapsed = stats.time
-    println("Took $elapsed seconds to run.")
+    elapsed = round(stats.time; digits=2)
+    println("Took $(elapsed) seconds to run.")
 
     # Setting info for saving into file
     timestamp = Dates.format(now(), dateformat"yyyymmdd-HHMMSS-sss")

@@ -24,21 +24,21 @@ function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 1024
+    Nt::Int = 256
     Ti::Float64 = 0.0
     Tf::Float64 = 10.0
 
-    d_width::Float64 = 128
-    Nd::Int = 256
+    d_width::Float64 = 50
+    Nd::Int = 64
 
-    Nz::Int = 256
+    Nz::Int = 64
     Zi::Float64 = 0.0
     Zf::Float64 = 10.0
 
     alpha::Float64 = 10.0
     beta::Float64 = 0.0
 
-    Ny::Int = 128
+    Ny::Int = 64
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -4*y_pulse_width
     Yf::Float64 = 4*y_pulse_width

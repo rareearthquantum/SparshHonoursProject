@@ -203,10 +203,10 @@ end
 
 
 function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
-    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
+    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3)) 
+    Omega ./= maximum(Omega)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
-    Omega ./= maximum(Omega)
     return heatmap(t_vec, z_vec, transpose(Omega[:, :]), c=:viridis, xlabel="t", ylabel="z", title=title)
 end
 
@@ -215,14 +215,16 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default)
     z_vec = result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y and t" : title
     Omega_z = vec(sum(Omega; dims=1))
+    Omega ./= maximum(Omega_z)
     min, max = extrema(Omega_z)
     ylims = (0.0, max+0.2abs(max))
-    Omega_z ./= maximum(Omega_z)
+    
     return plot(z_vec, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims)
 end
 
 function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
+    Omega ./= maximum(Omega)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
     ylims = extrema(Omega)
@@ -235,7 +237,6 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
 
     delta = floor(Int, length(z_vec) / nslices)
 
-    Omega ./= maximum(Omega)
 
     for i in 1:nslices
         plot!(t_vec, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
