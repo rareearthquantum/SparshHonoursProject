@@ -203,7 +203,7 @@ end
 
 
 function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
-    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3)) 
+    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     Omega ./= maximum(Omega)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
@@ -218,7 +218,7 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default)
     Omega_z ./= maximum(Omega_z)
     min, max = extrema(Omega_z)
     ylims = (0.0, max+0.2abs(max))
-    
+
     return plot(z_vec, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims)
 end
 
@@ -245,11 +245,42 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     return fig
 end
 
+
+function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:default)
+    Omega = operation.(result.Omega[:, :, (end÷2+1):end])
+    z_vec = result.z_vec
+    title = (title==:default) ? "sum $(nameof(operation)) Omega and t" : title
+    Omega_z = dropdims(sum(Omega; dims=1); dims=1)
+    Omega_z ./= maximum(Omega_z)
+    min, max = extrema(Omega_z)
+    ylims = (0.0, max+0.2abs(max))
+
+    colgrad = cgrad([:blue, :yellow, :red])
+    colors = colgrad[range(0, 1, length=nslices)]
+    fig = plot(; xlabel="t", title=title, ylims=ylims, legend=false)
+
+    delta = floor(Int, length(result.y_vec) / 2nslices)
+
+
+    for i in 1:nslices
+        plot!(z_vec, Omega_z[:, i*delta-(delta-1)], c=colors[i])
+    end
+
+    return fig
+end
+
+
+
 function plots_for_jevon(result)
     heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
     area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
     energy = plot_2d_z_ysum_line(result; operation=abs2, title="Total pulse energy")
     superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z")
+    superimposed_area_yslices = plot_2d_z_yslices_line(result; operation=real, nslices=20, title="Pulse area slices in y against z")
+    superimposed_intensity_yslices = plot_2d_z_yslices_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in y against z")
 
-    return plot(heatmap, area, superimposed, energy, layout=(2, 2), size=(1200, 1000))
+    return plot(
+        heatmap, area, superimposed_area_yslices, 
+        superimposed, energy, superimposed_intensity_yslices, 
+        layout=(2, 3), size=(1600, 1000))
 end
