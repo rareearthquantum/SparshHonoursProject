@@ -1,4 +1,4 @@
-using Plots
+using Plots, Measures
 
 
 function make_param_info(cfg)
@@ -191,7 +191,6 @@ function plot_superimposed_slices(
 end
 
 
-
 function plot_sum_omega(result; operation=abs2)
     (result.cfg.Nz==1) && (return nothing)
     total = vec(sum(sum(operation.(result.Omega), dims=3), dims=1))
@@ -201,25 +200,33 @@ function plot_sum_omega(result; operation=abs2)
 end
 
 
+#---------------------------
 
 function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     Omega ./= maximum(Omega)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
-    return heatmap(t_vec, z_vec, transpose(Omega[:, :]), c=:viridis, xlabel="t", ylabel="z", title=title)
+    return heatmap(t_vec, z_vec, transpose(Omega[:, :]); 
+    c=:viridis, xlabel="t", ylabel="z", title=title, cbar=false)
 end
 
 function plot_2d_z_ysum_line(result; operation=abs2, title=:default)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     z_vec = result.z_vec
-    title = (title==:default) ? "sum $(nameof(operation)) Omega over y and t" : title
-    Omega_z = vec(sum(Omega; dims=1))
-    Omega_z ./= maximum(Omega_z)
-    min, max = extrema(Omega_z)
-    ylims = (0.0, max+0.2abs(max))
 
-    return plot(z_vec, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims)
+    Omega_z = vec(sum(Omega; dims=1))
+    Omega_z ./= Omega_z[begin]
+
+    min, max = extrema(Omega_z)
+    ymin = (all(>(0), Omega_z)) ? 0.0 : min-0.1abs(min)
+    ymax = max+0.05abs(max)
+    ylims = (ymin, ymax)
+    xlims = extrema(z_vec)
+
+    title = (title==:default) ? "sum $(nameof(operation)) Omega over y and t" : title
+
+    return plot(z_vec, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims, xlims=xlims)
 end
 
 function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default)
@@ -227,11 +234,13 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     Omega ./= maximum(Omega)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
-    ylims = extrema(Omega)
+    min, max = extrema(Omega)
+    ylims = (0.0, max+0.05abs(max))
+    xlims = extrema(z_vec)
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="t", title=title, ylims=ylims)
+    fig = plot(; xlabel="t", title=title, ylims=ylims, xlims=xlims)
 
     firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
 
@@ -253,11 +262,12 @@ function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:defau
     Omega_z = dropdims(sum(Omega; dims=1); dims=1)
     Omega_z ./= maximum(Omega_z)
     min, max = extrema(Omega_z)
-    ylims = (0.0, max+0.2abs(max))
+    ylims = (0.0, max+0.05abs(max))
+    xlims = extrema(z_vec)
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="t", title=title, ylims=ylims, legend=false)
+    fig = plot(; xlabel="z", title=title, ylims=ylims, xlims=xlims, legend=false)
 
     delta = floor(Int, length(result.y_vec) / 2nslices)
 
@@ -269,18 +279,46 @@ function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:defau
     return fig
 end
 
+function plot_2d_zy_tslices_heatmap(result; operation=abs2, nslices=3, title=:default)
+    Omega = operation.(result.Omega)
+    Omega ./= maximum(Omega)
+    y_vec, z_vec = result.y_vec, result.z_vec
+    
+    fig_vec = Array{Plots.Plot}(undef,nslices)
+    index = i -> ceil(Int, (length(result.time_vec) / nslices) * i)
 
+    for i in 1:nslices
+        fig_vec[i] = heatmap(y_vec, z_vec, transpose(Omega[index(i),:,:]); c=:viridis, xlabel="y", ylabel="z")
+    end
+
+    return plot(fig_vec...; layout=(nslices, 1), size=(600,200*nslices))
+end
+
+function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
+    Omega = operation.(result.Omega)
+    Omega ./= maximum(Omega)
+    y_vec, z_vec = result.y_vec, result.z_vec
+
+    tindex = argmax(Omega[:,end÷2+1,end÷2+1])
+    Omega_tslice = Omega[tindex,:,:]
+    Omega_tslice ./= maximum(Omega_tslice)
+
+    title = (title==:default) ? "$(nameof(operation)) Omega time slice" : title
+
+    return heatmap(y_vec, z_vec, Omega_tslice; c=:viridis, xlabel="y", ylabel="z", title=title, cbar=false)
+end
 
 function plots_for_jevon(result)
     heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
-    area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
+    #area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
+    pulse_profile_heatmap = plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title="Pulse intensity profile time slice")
     energy = plot_2d_z_ysum_line(result; operation=abs2, title="Total pulse energy")
     superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z")
-    superimposed_area_yslices = plot_2d_z_yslices_line(result; operation=real, nslices=20, title="Pulse area slices in y against z")
-    superimposed_intensity_yslices = plot_2d_z_yslices_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in y against z")
+    superimposed_area_yslices = plot_2d_z_yslices_line(result; operation=real, nslices=30, title="Pulse area slices in y against z")
+    superimposed_intensity_yslices = plot_2d_z_yslices_line(result; operation=abs2, nslices=30, title="Pulse intensity slices in y against z")
 
     return plot(
-        heatmap, area, superimposed_area_yslices, 
+        heatmap, pulse_profile_heatmap, superimposed_area_yslices, 
         superimposed, energy, superimposed_intensity_yslices, 
-        layout=(2, 3), size=(1600, 1000))
+        layout=(2, 3), size=(1600, 1000), margins=3mm, framestyle=:box, left_margin=5mm, bottom_margin=5mm)
 end

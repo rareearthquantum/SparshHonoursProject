@@ -24,26 +24,78 @@ function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 256
+    Nt::Int = 256 * 4
     Ti::Float64 = 0.0
-    Tf::Float64 = 10.0
+    Tf::Float64 = 10.0 * 4
 
     d_width::Float64 = 50
-    Nd::Int = 64
+    Nd::Int = 64 * 4
 
-    Nz::Int = 64
+    Nz::Int = 64 * 2
     Zi::Float64 = 0.0
     Zf::Float64 = 10.0
 
-    alpha::Float64 = 10.0
+    alpha::Float64 = 10.0 * 2
     beta::Float64 = 0.0
 
-    Ny::Int = 64
+    Ny::Int = 64 * 2
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -4*y_pulse_width
     Yf::Float64 = 4*y_pulse_width
 
     pulses::Vector{NTuple{2,PulseParams}} = default_soliton_2d_pulses(Ti, Tf; y_pulse_width)
+
+    function EchoConfig(
+        Nt, Ti, Tf,
+        d_width, Nd,
+        Nz, Zi, Zf,
+        alpha, beta,
+        Ny, y_pulse_width, Yi, Yf,
+        pulses,
+    )
+        Nt = Int(Nt)
+        Nd = Int(Nd)
+        Nz = Int(Nz)
+        Ny = Int(Ny)
+
+        Ti = Float64(Ti)
+        Tf = Float64(Tf)
+        d_width = Float64(d_width)
+        Zi = Float64(Zi)
+        Zf = Float64(Zf)
+        alpha = Float64(alpha)
+        beta = Float64(beta)
+        y_pulse_width = Float64(y_pulse_width)
+        Yi = Float64(Yi)
+        Yf = Float64(Yf)
+
+        Nt >= 1 || throw(ArgumentError("Nt must be positive"))
+        Nd >= 1 || throw(ArgumentError("Nd must be positive"))
+        Nz >= 1 || throw(ArgumentError("Nz must be positive"))
+        Ny >= 1 || throw(ArgumentError("Ny must be positive"))
+
+        Ti < Tf || throw(ArgumentError("Ti must be less than Tf"))
+        Zi < Zf || throw(ArgumentError("Zi must be less than Zf"))
+        Ny == 1 || Yi < Yf ||
+            throw(ArgumentError("Yi must be less than Yf when Ny > 1"))
+
+        d_width > 0 ||
+            throw(ArgumentError("d_width must be positive"))
+        y_pulse_width > 0 ||
+            throw(ArgumentError("y_pulse_width must be positive"))
+
+        Ny == 1 || Nz > 1 ||
+            throw(ArgumentError("Nz must be greater than 1 when Ny > 1"))
+
+        return new(
+            Nt, Ti, Tf,
+            d_width, Nd,
+            Nz, Zi, Zf,
+            alpha, beta,
+            Ny, y_pulse_width, Yi, Yf,
+            pulses,
+        )
+    end
 end
 
 make_detunings(cfg::EchoConfig) = LinRange(-cfg.d_width/2, cfg.d_width/2, cfg.Nd)

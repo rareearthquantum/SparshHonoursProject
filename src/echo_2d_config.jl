@@ -19,7 +19,7 @@ end
 function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 3duration/40, duration/40, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
+        (PulseParams(Ti + 3duration/10, duration/10, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
