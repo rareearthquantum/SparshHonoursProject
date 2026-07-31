@@ -8,13 +8,17 @@ function compute_polarisation_column!(
     P_col, sigma_temp, Omega_col, detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
     fill!(P_col, 0)
 
-    @inbounds for i in eachindex(detunings)
-        sigma_temp[2, 1] = -1.0
-        @views rk4_new!(atom_woah_new!, sigma_temp, time_vec, (Omega_col, time_vec, rotate_sigma[i, :]))
-        @views @. P_col += sigma_temp[1, :] * unrotate_sigma_grid[i, :]
-    end
+    sigma_temp[:, 1, 1] .= 0.0
+    sigma_temp[:, 2, 1] .= -1.0
+    @views rk4_custom!(sigma_temp, time_vec, (Omega_col, rotate_sigma))
 
-    P_col ./= length(detunings)
+    @inbounds for j in axes(sigma_temp, 3)
+        value = zero(eltype(P_col))
+        for d in axes(sigma_temp, 1)
+            value += sigma_temp[d, 1, j] * unrotate_sigma_grid[d, j]
+        end
+        P_col[j] = value / size(sigma_temp, 1)
+    end
 
     return nothing
 end
@@ -39,7 +43,7 @@ function run_2d_propagation(
     Omega_input = [omega_2d_input.(time_vec, y_vec[l]) for l in eachindex(y_vec)] |> stack
     Omega[:,1,:] .= Omega_input
 
-    sigma_temp = zeros(ComplexF64, 2, length(time_vec))
+    sigma_temp = zeros(ComplexF64, length(detunings), 2, length(time_vec))
 
     if (save_polarisation)
         P = zeros(ComplexF64, length(time_vec), length(z_vec), length(y_vec))
@@ -122,12 +126,7 @@ end
 
 function run_simulation(cfg)
     # RUN
-    stats = @timed run_2d_propagation(cfg)
-
-    # Take results
-    result = stats.value
-    elapsed = round(stats.time; digits=2)
-    println("Took $(elapsed) seconds to run.")
+    @time result = run_2d_propagation(cfg)
 
     # Setting info for saving into file
     timestamp = Dates.format(now(), dateformat"yyyymmdd-HHMMSS-sss")
