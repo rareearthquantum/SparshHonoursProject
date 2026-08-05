@@ -222,11 +222,12 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default)
     ymin = (all(>(0), Omega_z)) ? 0.0 : min-0.1abs(min)
     ymax = max+0.05abs(max)
     ylims = (ymin, ymax)
-    xlims = extrema(z_vec)
+    x_axis = z_vec
+    xlims = extrema(x_axis)
 
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y and t" : title
 
-    return plot(z_vec, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims, xlims=xlims)
+    return plot(x_axis, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims, xlims=xlims)
 end
 
 function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default)
@@ -237,7 +238,8 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
     min, max = extrema(Omega)
     ylims = (0.0, max+0.05abs(max))
-    xlims = extrema(t_vec) #watch it
+    x_axis = t_vec
+    xlims = extrema(x_axis) #watch it
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
@@ -249,7 +251,7 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
 
 
     for i in 1:nslices
-        plot!(t_vec, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
+        plot!(x_axis, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
     end
 
     return fig
@@ -264,7 +266,8 @@ function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:defau
     Omega_z ./= maximum(Omega_z)
     min, max = extrema(Omega_z)
     ylims = (0.0, max+0.05abs(max))
-    xlims = extrema(z_vec)
+    x_axis = z_vec
+    xlims = extrema(x_axis)
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
@@ -274,7 +277,7 @@ function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:defau
 
 
     for i in 1:nslices
-        plot!(z_vec, Omega_z[:, i*delta-(delta-1)], c=colors[i])
+        plot!(x_axis, Omega_z[:, i*delta-(delta-1)], c=colors[i])
     end
 
     return fig
