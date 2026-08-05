@@ -26,10 +26,9 @@ end
 function run_2d_propagation(
     cfg::EchoConfig=EchoConfig();
     omega_2d_input=make_omega_2d_input(cfg),
-    compute_final_polarisation::Bool=true,
-    save_polarisation::Bool=false
+    compute_final_polarisation::Bool=true
 )
-    (cfg.Nz==1) && (save_polarisation=true) #can output only polarisation at Nz=1
+    (cfg.Nz==1) && (compute_final_polarisation=true) #can output only polarisation at Nz=1
 
     start_time = time()
 
@@ -45,15 +44,8 @@ function run_2d_propagation(
 
     sigma_temp = zeros(ComplexF64, length(detunings), 2, length(time_vec))
 
-    if (save_polarisation)
-        P = zeros(ComplexF64, length(time_vec), length(z_vec), length(y_vec))
-        P_ky = similar(P[:, 1, :])
-        P_col = (j,l) -> view(P,:,j,l)
-    else
-        P = zeros(ComplexF64, length(time_vec), length(y_vec))
-        P_ky = similar(P)
-        P_col = (j,l) -> view(P,:,l)
-    end
+    P = zeros(ComplexF64, length(time_vec), length(y_vec))
+    P_ky = similar(P)
 
     unrotate_sigma_grid = make_unrotate_sigma_grid(detunings, time_vec)
     field_caches = [@views AB2Cache(Omega[:, 1, l]) for l in eachindex(y_vec)]
@@ -62,8 +54,6 @@ function run_2d_propagation(
     diffrac_rotate = @. cis(cfg.beta*ky_grid^2*dz)
     inverse_diffrac_rotate = conj.(diffrac_rotate)
 
-    #P_ky = similar(P[:, 1, :])
-    #P_ky = similar(P)
     Omega_ky = similar(Omega[:, 1, :])
 
     rotate_sigma = Array{ComplexF64}(undef, length(detunings), 2length(time_vec))
@@ -74,17 +64,17 @@ function run_2d_propagation(
     end
 
     percent_count = 0
-    tenthofNz = length(z_vec)÷10
+    tenthofNz = max(1,length(z_vec)÷10)
 
     @inbounds for j in 1:(length(z_vec)-1)
 
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P_col(j,l), sigma_temp, Omega[:, j, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
+                P[:,l], sigma_temp, Omega[:, j, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
         end
 
-        P_ky[:, :] .= fft(P_col(j,:), 2)
-        Omega_ky[:, :] .= fft(Omega[:, j, :], 2)
+        P_ky .= fft(P, 2)
+        Omega_ky .= fft(Omega[:, j, :], 2)
 
         for l in eachindex(ky_grid)
             @views ab2_step!(
@@ -114,7 +104,7 @@ function run_2d_propagation(
     if compute_final_polarisation
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P_col(length(z_vec),l), sigma_temp, Omega[:, end, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
+                P[:,l], sigma_temp, Omega[:, end, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
         end
     end
 
