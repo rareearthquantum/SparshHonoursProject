@@ -232,11 +232,12 @@ end
 function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     Omega ./= maximum(Omega)
+    
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
     min, max = extrema(Omega)
     ylims = (0.0, max+0.05abs(max))
-    xlims = extrema(z_vec)
+    xlims = extrema(t_vec) #watch it
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
