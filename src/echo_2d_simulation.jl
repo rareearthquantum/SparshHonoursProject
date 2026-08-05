@@ -5,12 +5,12 @@ current_runtime(start_time) = round(time() - start_time; digits=2)
 make_unrotate_sigma_grid(detunings, time_vec) = [cis(-detuning * t) for detuning in detunings, t in time_vec]
 
 function compute_polarisation_column!(
-    P_col, sigma_temp, Omega_col, detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
+    P_col, sigma_temp, Omega_col, unrotate_sigma_grid, time_vec, rotate_sigma, cache)
     fill!(P_col, 0)
 
     sigma_temp[:, 1, 1] .= 0.0
     sigma_temp[:, 2, 1] .= -1.0
-    @views rk4_custom!(sigma_temp, time_vec, (Omega_col, rotate_sigma))
+    @views rk4_custom!(sigma_temp, time_vec, (Omega_col, rotate_sigma), cache)
 
     @inbounds for j in axes(sigma_temp, 3)
         value = zero(eltype(P_col))
@@ -63,6 +63,9 @@ function run_2d_propagation(
         @. rotate_sigma[:, 2j] = cis(detunings*(time_vec[j]+halfdt))
     end
 
+    threadcount = Threads.nthreads()
+    atom_caches = [@views RK4Cache(sigma_temp[:, :, 1]) for i in 1:threadcount]
+
     percent_count = 0
     tenthofNz = max(1,length(z_vec)÷10)
 
@@ -70,7 +73,8 @@ function run_2d_propagation(
 
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P[:,l], sigma_temp, Omega[:, j, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
+                P[:,l], sigma_temp, Omega[:, j, l], unrotate_sigma_grid, time_vec, rotate_sigma, atom_caches[1]) 
+                #need to somehow give a cache to each thread
         end
 
         P_ky .= fft(P, 2)
@@ -104,7 +108,7 @@ function run_2d_propagation(
     if compute_final_polarisation
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P[:,l], sigma_temp, Omega[:, end, l], detunings, unrotate_sigma_grid, time_vec, rotate_sigma)
+                P[:,l], sigma_temp, Omega[:, end, l], unrotate_sigma_grid, time_vec, rotate_sigma, atom_caches[1])
         end
     end
 

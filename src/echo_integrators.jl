@@ -153,11 +153,10 @@ function rk4_custom_step!(uf, ui, index, dts, p, cache::RK4Cache)
 end
 
 
-function rk4_custom!(u, time_vec, p)
+function rk4_custom!(u, time_vec, p, cache)
 
     dt = step(time_vec)
     dts = (dt, dt/2, dt/6)
-    cache = @views RK4Cache(u[:, :, 1])
 
     @inbounds for i in 1:(length(time_vec)-1)
         @views rk4_custom_step!(u[:, :, i+1], u[:, :, i], i, dts, p, cache)
