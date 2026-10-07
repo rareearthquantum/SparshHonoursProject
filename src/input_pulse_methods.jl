@@ -43,3 +43,9 @@ pulse_2d_sum(t, y, pulses_2d::AbstractVector{NTuple{2,PulseParams}}) = sum(param
 
 top_hat_pulse(u, center, width, area)::Float64 = ( abs(u-center) <= width/2 ) ? area/width : 0
 top_hat_pulse(u,  pulseparams::PulseParams)::Float64 = top_hat_pulse(u, pulseparams.center, pulseparams.width, pulseparams.area)
+
+tophat_2dish_pulse(t, y, ty_param) = top_hat_pulse(t,ty_param[1])*gaussian(y,ty_param[2])
+tophat_pulse_2dish_sum(t, y, pulses_2d::AbstractVector{NTuple{2,PulseParams}}) = sum(params -> tophat_2dish_pulse(t, y, params), pulses_2d)
+
+tophat_2d_pulse(t, y, ty_param) = top_hat_pulse(t,ty_param[1])*top_hat_pulse(y,ty_param[2])
+tophat_pulse_2d_sum(t, y, pulses_2d::AbstractVector{NTuple{2,PulseParams}}) = sum(params -> tophat_2d_pulse(t, y, params), pulses_2d)

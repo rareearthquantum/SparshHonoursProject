@@ -211,7 +211,7 @@ function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
     c=:viridis, xlabel="t", ylabel="z", title=title, cbar=false)
 end
 
-function plot_2d_z_ysum_line(result; operation=abs2, title=:default)
+function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_bool=false)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     z_vec = result.z_vec
 
@@ -219,7 +219,8 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default)
     Omega_z ./= Omega_z[begin]
 
     min, max = extrema(Omega_z)
-    ymin = (all(>(0), Omega_z)) ? 0.0 : min-0.1abs(min)
+    ymin = (all(>(0), Omega_z)) ? 0.0 : min-0.05abs(min)
+    ymin = (ylim_zoom_bool) ? min-0.05abs(min) : ymin;
     ymax = max+0.05abs(max)
     ylims = (ymin, ymax)
     x_axis = z_vec
@@ -237,7 +238,7 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
     min, max = extrema(Omega)
-    ylims = (0.0, max+0.05abs(max))
+    ylims = extrema(Omega)
     x_axis = t_vec
     xlims = extrema(x_axis) #watch it
 
@@ -312,7 +313,19 @@ function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
     return heatmap(y_vec, z_vec, Omega_tslice; c=:viridis, xlabel="y", ylabel="z", title=title, cbar=false)
 end
 
-function plots_for_jevon(result)
+function plot_2sd_spatialslices_superimposed(result; nslices=4)
+    Omega = abs2.(result.Omega)
+    Omega ./= maximum(Omega)
+
+    halfOmegas = filter(x -> (x<=0.501 && x>=0.499), Omega)
+
+    
+    for i in 1:nslices
+        plot(;seriestype=:scatter)
+    end
+end
+
+function plots_for_jevon_2sd(result)
     heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
     #area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
     pulse_profile_heatmap = plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title="Pulse intensity profile time slice")
@@ -325,4 +338,131 @@ function plots_for_jevon(result)
         heatmap, pulse_profile_heatmap, superimposed_area_yslices, 
         superimposed, energy, superimposed_intensity_yslices, 
         layout=(2, 3), size=(1600, 1000), margins=3mm, framestyle=:box, left_margin=5mm, bottom_margin=5mm)
+end
+
+
+#-------------------------------------------
+
+function plot_1d_tz_heatmap(result; operation=abs2, title=:default)
+    Omega = operation.(dropdims(result.Omega; dims=3))
+    Omega ./= maximum(Omega)
+    t_vec, z_vec = result.time_vec, result.z_vec
+    title = (title==:default) ? "$(nameof(operation)) Omega" : title
+    return heatmap(t_vec, z_vec, transpose(Omega[:, :]); 
+    c=:viridis, xlabel="t", ylabel="z", title=title)
+end
+
+function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false)
+    Omega = operation.(dropdims(result.Omega;dims=3))
+    Omega ./= maximum(Omega)
+    
+    t_vec, z_vec = result.time_vec, result.z_vec
+    title = (title==:default) ? "$(nameof(operation)) Omega" : title
+    min, max = extrema(Omega)
+    ylims = extrema(Omega)
+    x_axis = t_vec
+    xlims = extrema(x_axis) #watch it
+
+    if zoom
+        startindex = findfirst(x -> x>0.01, Omega[:,begin])
+        endindex = length(t_vec) - findfirst(x -> x>0.01, reverse(Omega[:,end]))
+
+        x_axis = x_axis[startindex:endindex]
+        Omega = Omega[startindex:endindex,:]
+
+        xlims = extrema(x_axis)
+    end
+
+    colgrad = cgrad([:blue, :yellow, :red])
+    colors = colgrad[range(0, 1, length=nslices)]
+    fig = plot(; xlabel="t", title=title, ylims=ylims, xlims=xlims)
+
+    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
+
+    delta = floor(Int, length(z_vec) / nslices)
+
+    for i in 1:nslices
+        plot!(x_axis, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
+    end
+
+    return fig
+end
+
+function plot_1d_superimposed_lines_against_z(result; operation=abs2, nslices=10, title=:default)
+    Omega = operation.(dropdims(result.Omega; dims=3))
+    Omega ./= maximum(Omega)
+    
+    t_vec, z_vec = result.time_vec, result.z_vec
+    title = (title==:default) ? "$(nameof(operation)) Omega" : title
+    min, max = extrema(Omega)
+    ylims = (0.0, max+0.05abs(max))
+    x_axis = z_vec
+    xlims = extrema(x_axis) #watch it
+
+    colgrad = cgrad([:blue, :yellow, :red])
+    colors = colgrad[range(0, 1, length=nslices)]
+    fig = plot(; xlabel="z", title=title, ylims=ylims, xlims=xlims)
+
+    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
+
+    delta = floor(Int, length(t_vec) / nslices)
+
+
+    for i in 1:nslices
+        plot!(x_axis, Omega[i*delta-(delta-1), :], c=colors[i], label=firstlast(i))
+    end
+
+    return fig
+end
+
+
+function plots_for_jevon_1sd(result)
+    heatmap = plot_1d_tz_heatmap(result; operation=abs2, title="Pulse intensity")
+    superimposed_zlines_against_t = plot_1d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10)
+    energy = plot_2d_z_ysum_line(result; operation=abs2, title="Sum of pulse intensity across \$t\$", ylim_zoom_bool=true)
+    area = plot_2d_z_ysum_line(result; operation=real, title="Pulse area", ylim_zoom_bool=true)
+    #superimposed_tlines_against_z = plot_1d_superimposed_lines_against_z(result; operation=abs2, nslices=10, title="Pulse intensity slices in \$t\$")
+
+    return plot(
+        heatmap, energy, 
+        superimposed_zlines_against_t, area,
+        layout=(2, 2), size=(800, 500), margins=2mm, framestyle=:box, left_margin=4mm, bottom_margin=4mm)
+end
+
+#------------------------
+
+function plot_0sd_polarisation(result)
+    P = abs2.(result.P)
+
+    t_vec = result.time_vec
+    #title = (title==:default) ? "" : title
+    fig = plot(; ylabel="\$|\\mathcal{P}|^2\$", title="Squared magnitude of the polarisation density against time")
+
+    plot!(t_vec, P; label=false)
+
+    return fig
+end
+
+function plot_0sd_pol_complex_parts(result)
+    Pu = 2*real(result.P)
+    Pv = -2*imag(result.P)
+
+    t_vec = result.time_vec
+
+    fig = plot(; title="Ensemble averaged Bloch components against time")
+
+    plot!(t_vec, Pu; label="averaged u")
+    plot!(t_vec, Pv; label="averaged v")
+
+    return fig
+end
+
+function plots_for_jevon_0sd(result)
+    pol_abs2 = plot_0sd_polarisation(result)
+    pol_real_n_imag = plot_0sd_pol_complex_parts(result)
+
+
+    return plot(
+        pol_abs2, pol_real_n_imag; layout=(2,1), size=(800,600)
+    )
 end

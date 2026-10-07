@@ -12,4 +12,4 @@ include("../src/echo_2d_propagation.jl")
 cfg = EchoConfig()
 println("Config initialised after $(current_runtime(start_time))s.")
 
-run_simulation(cfg)
+run_2d_simulation(cfg)

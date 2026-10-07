@@ -118,7 +118,7 @@ function run_2d_propagation(
 end
 
 
-function run_simulation(cfg)
+function run_2d_simulation(cfg)
     # RUN
     @time result = run_2d_propagation(cfg)
 
@@ -131,22 +131,21 @@ function run_simulation(cfg)
 
 
     # Setting plot directory and helper function
-    plot_output_dir = joinpath(dirname(@__DIR__), "plots", "prop_2d")
+    plot_output_dir = joinpath(dirname(@__DIR__), "plots", "results")
     mkpath(plot_output_dir)
     plot_n_save(func, name) = save_plot(result, func, plot_output_dir, name; parameter_info=parameter_info, timestamp=timestamp)
 
 
     # Plotting
-    #plot_n_save(plot_sum_omega, "energy")
-    #plot_n_save(x -> plot_sum_omega(x; operation=real), "area")
-    #plot_n_save(x -> plot_soliton_z_lineshapes(x;nslices=4), "soliton_lineshapes")
-    #plot_n_save(x -> plot_superimposed_lineshapes(x; constdim=(3,result.cfg.Ny÷2+1), nslices=10), "superimposed_slices")
-    #plot_n_save(animate_field_2d, "anim")
-
-    #plot_n_save(plot_2d_tz_ysum_heatmap, "testing")
-    #plot_n_save(x -> plot_2d_z_ysum_line(x; operation=abs2), "testing")
-    #plot_n_save(x -> plot_2d_z_ysum_line(x; operation=real), "testing")
-    plot_n_save(plots_for_jevon, "testing")
+    if (cfg.Ny > 1 && cfg.Nz > 1) #2sd
+        plot_n_save(plots_for_jevon_2sd, "testing/2sd")
+    elseif (cfg.Ny == 1 && cfg.Nz > 1) #1sd
+        plot_n_save(plots_for_jevon_1sd, "testing/1sd")
+    elseif (cfg.Ny==1 && cfg.Nz == 1) #0sd
+        plot_n_save(plots_for_jevon_0sd, "testing/0sd")
+    else
+        error("What kind of Ny and Nz do you have???")
+    end
 
     # Saving jld2 data
     #save_data(result, elapsed, "prop_2d")
