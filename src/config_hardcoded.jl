@@ -26,31 +26,38 @@ end
 function default_weak_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + duration/2, duration/5, pi/8), PulseParams(0.0, 1.0, 1.0))
+        (PulseParams(Ti + duration/2, duration/10, pi/8), PulseParams(0.0, 1.0, 1.0))
+    ]
+end
+
+function default_pi_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
+    duration = Tf - Ti
+    return [
+        (PulseParams(Ti + 3duration/10, duration/50, pi), PulseParams(0.0, 1.0, 1.0))
     ]
 end
 
 Base.@kwdef struct EchoConfig
-    Nt::Int = 256 * 2 * 2
+    Nt::Int = 256 * 2
     Ti::Float64 = 0.0
     Tf::Float64 = 1.0
 
     d_width::Float64 = 1000
-    Nd::Int = 64 * 2 * 2 * 2
+    Nd::Int = 64 * 2 * 2
 
-    Nz::Int = 64 * 2 * 2*0 +1
+    Nz::Int = 64 * 2 
     Zi::Float64 = 0.0
     Zf::Float64 = 1.0
 
-    alpha::Float64 = 1000.0
+    alpha::Float64 = 3000.0
     beta::Float64 = 0.0
 
-    Ny::Int = 64 * 2 * 2 *0 +1
+    Ny::Int = 64 * 2*0+1
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -4*y_pulse_width
     Yf::Float64 = 4*y_pulse_width
 
-    pulses::Vector{NTuple{2,PulseParams}} = default_echo_2d_pulses(Ti, Tf; y_pulse_width)
+    pulses::Vector{NTuple{2,PulseParams}} = default_pi_2d_pulses(Ti, Tf; y_pulse_width)
 
     function EchoConfig(
         Nt, Ti, Tf,

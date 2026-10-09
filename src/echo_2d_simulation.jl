@@ -137,11 +137,28 @@ function run_2d_simulation(cfg)
 
 
     # Plotting
-    if (cfg.Ny > 1 && cfg.Nz > 1) #2sd
-        plot_n_save(plots_for_jevon_2sd, "testing/2sd")
+    if (cfg.Ny > 1 && cfg.Nz > 1)
+        
+        if (length(cfg.pulses) == 1)
+            plot_n_save(plots_for_jevon_2sd_SIT, "testing/2sd")
+        elseif (length(cfg.pulses)==2)
+            plot_n_save(plots_for_jevon_2sd_echo, "testing/2sd")
+        else
+            error("How many pulses?")
+        end
+
     elseif (cfg.Ny == 1 && cfg.Nz > 1) #1sd
-        plot_n_save(plots_for_jevon_1sd, "testing/1sd")
+
+        if (length(cfg.pulses) == 1)
+            plot_n_save(plots_for_jevon_1sd_SIT, "testing/1sd")
+        elseif (length(cfg.pulses)==2)
+            plot_n_save(plots_for_jevon_1sd_echo, "testing/1sd")
+        else
+            error("How many pulses?")
+        end
+        
     elseif (cfg.Ny==1 && cfg.Nz == 1) #0sd
+        #clearly echo test
         plot_n_save(plots_for_jevon_0sd, "testing/0sd")
     else
         error("What kind of Ny and Nz do you have???")

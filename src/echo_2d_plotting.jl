@@ -20,15 +20,15 @@ function save_plot(result, plot, plot_output_dir, subdir_name; parameter_info="p
     extension = (animbool) ? ".gif" : ".png"
     type = (animbool) ? "animation" : "plot"
 
-    output_subdir = joinpath(plot_output_dir, subdir_name);
-    mkpath(output_subdir);
+    output_subdir = joinpath(plot_output_dir, subdir_name)
+    mkpath(output_subdir)
     randomnumb = rand(1:1000)
-    plot_path = joinpath(output_subdir, parameter_info * "_$(timestamp)_r$(randomnumb)" * extension);
-    (animbool) ? gif(fig, plot_path) : savefig(fig, plot_path);
+    plot_path = joinpath(output_subdir, parameter_info * "_$(timestamp)_r$(randomnumb)" * extension)
+    (animbool) ? gif(fig, plot_path) : savefig(fig, plot_path)
 
     path_elems = split(plot_path, "/")
     path_from_projroot = path_elems[end-2] * "/" * path_elems[end-1] * "/"
-    println("Saved " * type * " to directory .../PROJECT_ROOT/" * path_from_projroot);
+    println("Saved " * type * " to directory .../PROJECT_ROOT/" * path_from_projroot)
 end
 
 function save_data(result, elapsed, subdir_name; parameter_info="placeholder", timestamp="placeholder")
@@ -67,7 +67,7 @@ function animate_field_2d(result; filename="echo_2d.gif", fps=30, operation=abs2
         )
     end
 
-    return anim;
+    return anim
 end
 
 function plot_soliton_z_lineshapes(result; nslices=5, operation=abs2)
@@ -207,8 +207,8 @@ function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
     Omega ./= maximum(Omega)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
-    return heatmap(t_vec, z_vec, transpose(Omega[:, :]); 
-    c=:viridis, xlabel="t", ylabel="z", title=title, cbar=false)
+    return heatmap(t_vec, z_vec, transpose(Omega[:, :]);
+        c=:viridis, xlabel="t", ylabel="z", title=title, cbar=false)
 end
 
 function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_bool=false)
@@ -220,7 +220,7 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_b
 
     min, max = extrema(Omega_z)
     ymin = (all(>(0), Omega_z)) ? 0.0 : min-0.05abs(min)
-    ymin = (ylim_zoom_bool) ? min-0.05abs(min) : ymin;
+    ymin = (ylim_zoom_bool) ? min-0.05abs(min) : ymin
     ymax = max+0.05abs(max)
     ylims = (ymin, ymax)
     x_axis = z_vec
@@ -231,16 +231,46 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_b
     return plot(x_axis, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims, xlims=xlims)
 end
 
-function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default)
+function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default, zoom=true)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     Omega ./= maximum(Omega)
-    
+
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
-    min, max = extrema(Omega)
     ylims = extrema(Omega)
     x_axis = t_vec
-    xlims = extrema(x_axis) #watch it
+    xlims = extrema(x_axis)
+
+    if zoom
+        threshold = 0.01
+
+        first_above = firstindex(t_vec)
+        last_above = last_index(t_vec)
+
+        for i in 1:length(z_vec)
+            viewOmega = @view Omega[:,i]
+            temp = findfirst(>=(threshold), viewOmega)
+            if temp === nothing
+                temp = firstindex(t_vec)
+            end
+            if temp > first_above
+                first_above = temp
+            end
+
+            temp = findlast(>=(threshold), viewOmega)
+            if temp === nothing
+                temp = lastindex(t_vec)
+            end
+            if temp < last_above
+                last_above = temp
+            end
+        end
+
+        
+        startindex = max(first_above - 1, firstindex(t_vec))
+        endindex = min(last_above + 1, lastindex(t_vec))
+        xlims = (t_vec[startindex], t_vec[endindex])
+    end
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
@@ -288,15 +318,15 @@ function plot_2d_zy_tslices_heatmap(result; operation=abs2, nslices=3, title=:de
     Omega = operation.(result.Omega)
     Omega ./= maximum(Omega)
     y_vec, z_vec = result.y_vec, result.z_vec
-    
-    fig_vec = Array{Plots.Plot}(undef,nslices)
+
+    fig_vec = Array{Plots.Plot}(undef, nslices)
     index = i -> ceil(Int, (length(result.time_vec) / nslices) * i)
 
     for i in 1:nslices
-        fig_vec[i] = heatmap(y_vec, z_vec, transpose(Omega[index(i),:,:]); c=:viridis, xlabel="y", ylabel="z")
+        fig_vec[i] = heatmap(y_vec, z_vec, transpose(Omega[index(i), :, :]); c=:viridis, xlabel="y", ylabel="z")
     end
 
-    return plot(fig_vec...; layout=(nslices, 1), size=(600,200*nslices))
+    return plot(fig_vec...; layout=(nslices, 1), size=(600, 200*nslices))
 end
 
 function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
@@ -304,8 +334,8 @@ function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
     Omega ./= maximum(Omega)
     y_vec, z_vec = result.y_vec, result.z_vec
 
-    tindex = argmax(Omega[:,end÷2+1,end÷2+1])
-    Omega_tslice = Omega[tindex,:,:]
+    tindex = argmax(Omega[:, end÷2+1, end÷2+1])
+    Omega_tslice = Omega[tindex, :, :]
     Omega_tslice ./= maximum(Omega_tslice)
 
     title = (title==:default) ? "$(nameof(operation)) Omega time slice" : title
@@ -319,24 +349,111 @@ function plot_2sd_spatialslices_superimposed(result; nslices=4)
 
     halfOmegas = filter(x -> (x<=0.501 && x>=0.499), Omega)
 
-    
+
     for i in 1:nslices
-        plot(;seriestype=:scatter)
+        plot(; seriestype=:scatter)
     end
 end
 
-function plots_for_jevon_2sd(result)
+function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false)
+    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
+    Omega ./= maximum(Omega)
+
+    t_vec, z_vec = result.time_vec, result.z_vec
+    title = (title==:default) ? "$(nameof(operation)) Omega" : title
+    min, max = extrema(Omega)
+    ylims = extrema(Omega)
+    x_axis = t_vec
+    xlims = extrema(x_axis) #watch it
+
+    if zoom
+        threshold = 0.01
+        outOmega = @view Omega[:, end]
+        inOmega = @view Omega[:,begin]
+
+        first_above = findfirst(>=(threshold), inOmega)
+        last_above = findlast(>=(threshold), outOmega)
+
+        if first_above === nothing
+            first_above = firstindex(t_vec)
+        elseif last_above === nothing
+            last_above = lastindex(t_vec)
+        end
+        startindex = max(first_above - 1, firstindex(t_vec))
+        endindex = min(last_above + 1, lastindex(t_vec))
+        xlims = (t_vec[startindex], t_vec[endindex])
+    end
+
+    colgrad = cgrad([:blue, :yellow, :red])
+    colors = colgrad[range(0, 1, length=nslices)]
+    fig = plot(; xlabel="t", title=title, ylims=ylims, xlims=xlims)
+
+    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
+
+    delta = floor(Int, length(z_vec) / nslices)
+
+    for i in 1:nslices
+        plot!(x_axis, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
+    end
+
+    return fig
+end
+
+function plot_2sd_echo_efficiency(result)
+    Omega = abs2.(dropdims(sum(result.Omega; dims=3); dims=3))
+
+    z_vec = result.z_vec
+    t_vec = result.time_vec
+
+    input = result.cfg.pulses[1][1]
+    retrieval = result.cfg.pulses[2][1]
+    tau = retrieval.center - input.center
+    echo_time = input.center + 2tau
+
+    input_peaks = zeros(length(z_vec))
+    echo_peaks = zeros(length(z_vec))
+
+    tau_index = searchsortedfirst(t_vec, tau)
+    input_index = searchsortedfirst(t_vec, input.center)
+    echo_index = searchsortedfirst(t_vec, echo_time)
+    width_index = searchsortedfirst(t_vec, input.width)
+
+    inputrange = clamp.((input_index-2width_index):(input_index+3width_index), 1, length(t_vec))
+
+    for i in 1:length(z_vec)
+        input_peaks[i] = sum(Omega[inputrange, i])
+        echo_peaks[i] = sum(Omega[(echo_index-2width_index):end, i])
+    end
+
+    efficiency = echo_peaks ./ input_peaks[1]
+
+    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="z")
+
+    return fig
+end
+
+function plots_for_jevon_2sd_echo(result)
+    heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
+    superimposed_zlines_against_t = plot_2d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10)
+    echo_efficiency = plot_2sd_echo_efficiency(result)
+
+    return plot(
+        heatmap, superimposed_zlines_against_t, echo_efficiency,
+        layout=(1, 3), size=(1200, 400), margins=2mm, framestyle=:box, left_margin=4mm, bottom_margin=4mm)
+end
+
+function plots_for_jevon_2sd_SIT(result)
     heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
     #area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
     pulse_profile_heatmap = plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title="Pulse intensity profile time slice")
     energy = plot_2d_z_ysum_line(result; operation=abs2, title="Total pulse energy")
-    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z")
+    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z",zoom=true)
     superimposed_area_yslices = plot_2d_z_yslices_line(result; operation=real, nslices=30, title="Pulse area slices in y against z")
     superimposed_intensity_yslices = plot_2d_z_yslices_line(result; operation=abs2, nslices=30, title="Pulse intensity slices in y against z")
 
     return plot(
-        heatmap, pulse_profile_heatmap, superimposed_area_yslices, 
-        superimposed, energy, superimposed_intensity_yslices, 
+        heatmap, pulse_profile_heatmap, superimposed_area_yslices,
+        superimposed, energy, superimposed_intensity_yslices,
         layout=(2, 3), size=(1600, 1000), margins=3mm, framestyle=:box, left_margin=5mm, bottom_margin=5mm)
 end
 
@@ -348,29 +465,42 @@ function plot_1d_tz_heatmap(result; operation=abs2, title=:default)
     Omega ./= maximum(Omega)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    return heatmap(t_vec, z_vec, transpose(Omega[:, :]); 
-    c=:viridis, xlabel="t", ylabel="z", title=title)
+    return heatmap(t_vec, z_vec, transpose(Omega[:, :]);
+        c=:viridis, xlabel="t", ylabel="z", title=title)
 end
 
 function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false)
-    Omega = operation.(dropdims(result.Omega;dims=3))
+    Omega = operation.(dropdims(result.Omega; dims=3))
     Omega ./= maximum(Omega)
-    
+
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    min, max = extrema(Omega)
     ylims = extrema(Omega)
     x_axis = t_vec
     xlims = extrema(x_axis) #watch it
 
     if zoom
-        startindex = findfirst(x -> x>0.01, Omega[:,begin])
-        endindex = length(t_vec) - findfirst(x -> x>0.01, reverse(Omega[:,end]))
+        threshold = 0.001
 
-        x_axis = x_axis[startindex:endindex]
-        Omega = Omega[startindex:endindex,:]
+        first_above = lastindex(t_vec)
+        last_above = firstindex(t_vec)
 
-        xlims = extrema(x_axis)
+        for i in 1:length(z_vec)
+            viewOmega = @view Omega[:,i]
+            temp = findfirst(>=(threshold), viewOmega)
+            if temp !== nothing && temp < first_above
+                first_above = temp
+            end
+
+            temp = findlast(>=(threshold), viewOmega)
+            if temp !== nothing && temp > last_above
+                last_above = temp
+            end
+        end
+
+        startindex = max(first_above - 1, firstindex(t_vec))
+        endindex = min(last_above + 1, lastindex(t_vec))
+        xlims = (t_vec[startindex], t_vec[endindex])
     end
 
     colgrad = cgrad([:blue, :yellow, :red])
@@ -391,7 +521,7 @@ end
 function plot_1d_superimposed_lines_against_z(result; operation=abs2, nslices=10, title=:default)
     Omega = operation.(dropdims(result.Omega; dims=3))
     Omega ./= maximum(Omega)
-    
+
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
     min, max = extrema(Omega)
@@ -415,8 +545,50 @@ function plot_1d_superimposed_lines_against_z(result; operation=abs2, nslices=10
     return fig
 end
 
+function plot_1sd_echo_efficiency(result)
+    Omega = abs2.(dropdims(result.Omega; dims=3))
 
-function plots_for_jevon_1sd(result)
+    z_vec = result.z_vec
+    t_vec = result.time_vec
+
+    input = result.cfg.pulses[1][1]
+    retrieval = result.cfg.pulses[2][1]
+    tau = retrieval.center - input.center
+    echo_time = input.center + 2tau
+
+    input_peaks = zeros(length(z_vec))
+    echo_peaks = zeros(length(z_vec))
+
+    tau_index = searchsortedfirst(t_vec, tau)
+    input_index = searchsortedfirst(t_vec, input.center)
+    echo_index = searchsortedfirst(t_vec, echo_time)
+    width_index = searchsortedfirst(t_vec, input.width)
+
+    inputrange = clamp.((input_index-2width_index):(input_index+3width_index), 1, length(t_vec))
+
+    for i in 1:length(z_vec)
+        input_peaks[i] = sum(Omega[inputrange, i])
+        echo_peaks[i] = sum(Omega[(echo_index-2width_index):end, i])
+    end
+
+    efficiency = echo_peaks ./ input_peaks[1]
+
+    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="z")
+
+    return fig
+end
+
+function plots_for_jevon_1sd_echo(result)
+    heatmap = plot_1d_tz_heatmap(result; operation=abs2, title="Pulse intensity")
+    superimposed_zlines_against_t = plot_1d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10)
+    echo_efficiency = plot_1sd_echo_efficiency(result)
+
+    return plot(
+        heatmap, superimposed_zlines_against_t, echo_efficiency,
+        layout=(1, 3), size=(1600, 600), margins=2mm, framestyle=:box, left_margin=4mm, bottom_margin=4mm)
+end
+
+function plots_for_jevon_1sd_SIT(result)
     heatmap = plot_1d_tz_heatmap(result; operation=abs2, title="Pulse intensity")
     superimposed_zlines_against_t = plot_1d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10)
     energy = plot_2d_z_ysum_line(result; operation=abs2, title="Sum of pulse intensity across \$t\$", ylim_zoom_bool=true)
@@ -424,7 +596,7 @@ function plots_for_jevon_1sd(result)
     #superimposed_tlines_against_z = plot_1d_superimposed_lines_against_z(result; operation=abs2, nslices=10, title="Pulse intensity slices in \$t\$")
 
     return plot(
-        heatmap, energy, 
+        heatmap, energy,
         superimposed_zlines_against_t, area,
         layout=(2, 2), size=(800, 500), margins=2mm, framestyle=:box, left_margin=4mm, bottom_margin=4mm)
 end
@@ -463,6 +635,6 @@ function plots_for_jevon_0sd(result)
 
 
     return plot(
-        pol_abs2, pol_real_n_imag; layout=(2,1), size=(800,600)
+        pol_abs2, pol_real_n_imag; layout=(2, 1), size=(800, 600)
     )
 end
