@@ -242,31 +242,24 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     xlims = extrema(x_axis)
 
     if zoom
-        threshold = 0.01
+        threshold = 0.001
 
-        first_above = firstindex(t_vec)
-        last_above = last_index(t_vec)
+        first_above = lastindex(t_vec)
+        last_above = firstindex(t_vec)
 
         for i in 1:length(z_vec)
             viewOmega = @view Omega[:,i]
             temp = findfirst(>=(threshold), viewOmega)
-            if temp === nothing
-                temp = firstindex(t_vec)
-            end
-            if temp > first_above
+            if temp !== nothing && temp < first_above
                 first_above = temp
             end
 
             temp = findlast(>=(threshold), viewOmega)
-            if temp === nothing
-                temp = lastindex(t_vec)
-            end
-            if temp < last_above
+            if temp !== nothing && temp > last_above
                 last_above = temp
             end
         end
 
-        
         startindex = max(first_above - 1, firstindex(t_vec))
         endindex = min(last_above + 1, lastindex(t_vec))
         xlims = (t_vec[startindex], t_vec[endindex])
@@ -367,18 +360,24 @@ function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10
     xlims = extrema(x_axis) #watch it
 
     if zoom
-        threshold = 0.01
-        outOmega = @view Omega[:, end]
-        inOmega = @view Omega[:,begin]
+        threshold = 0.001
 
-        first_above = findfirst(>=(threshold), inOmega)
-        last_above = findlast(>=(threshold), outOmega)
+        first_above = lastindex(t_vec)
+        last_above = firstindex(t_vec)
 
-        if first_above === nothing
-            first_above = firstindex(t_vec)
-        elseif last_above === nothing
-            last_above = lastindex(t_vec)
+        for i in 1:length(z_vec)
+            viewOmega = @view Omega[:,i]
+            temp = findfirst(>=(threshold), viewOmega)
+            if temp !== nothing && temp < first_above
+                first_above = temp
+            end
+
+            temp = findlast(>=(threshold), viewOmega)
+            if temp !== nothing && temp > last_above
+                last_above = temp
+            end
         end
+
         startindex = max(first_above - 1, firstindex(t_vec))
         endindex = min(last_above + 1, lastindex(t_vec))
         xlims = (t_vec[startindex], t_vec[endindex])

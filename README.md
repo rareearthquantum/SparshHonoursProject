@@ -2,23 +2,12 @@
 
 ## Introduction
 
-This repository contains the code and dissertation for the PHSI490 research project of Sparsh Chandra. Supervised by [Associate Professor Jevon Longdell](https://www.otago.ac.nz/physics/staff/jevonlongdell) at the University of Otago, for the partial completion of a Bachelor of Science with Honours (BSc(Hons)) in Physics.
+This repository contains the code for the PHSI490 research project of Sparsh Chandra, supervised by [Associate Professor Jevon Longdell](https://www.otago.ac.nz/physics/staff/jevonlongdell) at the University of Otago, for the partial completion of a Bachelor of Science with Honours (BSc(Hons)) in Physics.
 
 ## Prerequisites
 
 You need to have [Git](https://git-scm.com/) and [Julia](https://julialang.org/) installed on your computer.
 This project is fully runnable on either Windows or Linux - macOS has yet to be tested.
-
-### Technical Lingo/Jargon/Words for the Uninitiated
-
- - Git: A version control system and software, designed to track changes in code or files
- - GitHub: A cloud-based service that allows you to manage, share and collaborate on Git repositories online
- - Repository (repo): The database that stores your project's files and complete history of changes
- - Clone: Copies an existing remote repository from a platform like GitHub to your local computer
- - Julia: A programming language
- - Pkg: Julia's built in package manager which handles installing, updating, and removing packages
- - Packages: Reusable bundle of code which can extend the functionality of Julia by providing new functions and more
- - [DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/): A Julia package designed to make the lives of scientists easier by making scientific projects easy to reproduce
 
 ## First Install
 
@@ -29,7 +18,6 @@ terminal> cd path/to/where/you/want/to/put/it/
 terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git
 terminal> cd SparshHonoursProject
 julia> ]
-pkg> add DrWatson
 pkg> activate .
 pkg> instantiate
 ```
@@ -41,33 +29,8 @@ everything should work out of the box, including correctly finding local paths.
 
 Now once its set up, to run any script from a fresh terminal session:
 
-### Option 1
-
-Nice and simple
-
 ```
 terminal> cd path/to/SparshHonoursProject
-terminal> julia scripts/run.jl
-```
+terminal> julia --project=. ./scripts/run_2d_echo_propagation.jl
 
-And to rerun:
-
-```
-terminal> julia scripts/run.jl
-```
-
-### Option 2
-
-Access to Julia REPL and Pkg, also successive reruns take less time:
-
-```
-terminal> cd path/to/SparshHonoursProject
-terminal> julia
-julia> include("scripts/run.jl")
-```
-
-And to rerun:
-
-```
-julia> include("scripts/run.jl")
 ```
