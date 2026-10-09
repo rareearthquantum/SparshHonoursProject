@@ -52,12 +52,12 @@ Base.@kwdef struct EchoConfig
     alpha::Float64 = 3000.0
     beta::Float64 = 0.0
 
-    Ny::Int = 64 * 2*0+1
+    Ny::Int = 64 * 2
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -4*y_pulse_width
     Yf::Float64 = 4*y_pulse_width
 
-    pulses::Vector{NTuple{2,PulseParams}} = default_pi_2d_pulses(Ti, Tf; y_pulse_width)
+    pulses::Vector{NTuple{2,PulseParams}} = default_echo_2d_pulses(Ti, Tf; y_pulse_width)
 
     function EchoConfig(
         Nt, Ti, Tf,

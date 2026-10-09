@@ -202,6 +202,32 @@ end
 
 #---------------------------
 
+function zoomingin(vector;threshold=0.001)
+
+    first_above = lastindex(vector[:,1])
+    last_above = firstindex(vector[:,1])
+
+    for i in 1:length(vector[1,:])
+        viewvec = @view vector[:,i]
+        temp = findfirst(>=(threshold), viewvec)
+        if temp !== nothing && temp < first_above
+            first_above = temp
+        end
+
+        temp = findlast(>=(threshold), viewvec)
+        if temp !== nothing && temp > last_above
+            last_above = temp
+        end
+    end
+
+    startindex = max(first_above - 1, firstindex(vector[:,1]))
+    endindex = min(last_above + 1, lastindex(vector[:,1]))
+    
+    return (startindex,endindex)
+end
+
+#--------------------------
+
 function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     Omega ./= maximum(Omega)
@@ -242,26 +268,7 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     xlims = extrema(x_axis)
 
     if zoom
-        threshold = 0.001
-
-        first_above = lastindex(t_vec)
-        last_above = firstindex(t_vec)
-
-        for i in 1:length(z_vec)
-            viewOmega = @view Omega[:,i]
-            temp = findfirst(>=(threshold), viewOmega)
-            if temp !== nothing && temp < first_above
-                first_above = temp
-            end
-
-            temp = findlast(>=(threshold), viewOmega)
-            if temp !== nothing && temp > last_above
-                last_above = temp
-            end
-        end
-
-        startindex = max(first_above - 1, firstindex(t_vec))
-        endindex = min(last_above + 1, lastindex(t_vec))
+        startindex,endindex = zoomingin(Omega)
         xlims = (t_vec[startindex], t_vec[endindex])
     end
 
@@ -354,32 +361,12 @@ function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10
 
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    min, max = extrema(Omega)
     ylims = extrema(Omega)
     x_axis = t_vec
     xlims = extrema(x_axis) #watch it
 
     if zoom
-        threshold = 0.001
-
-        first_above = lastindex(t_vec)
-        last_above = firstindex(t_vec)
-
-        for i in 1:length(z_vec)
-            viewOmega = @view Omega[:,i]
-            temp = findfirst(>=(threshold), viewOmega)
-            if temp !== nothing && temp < first_above
-                first_above = temp
-            end
-
-            temp = findlast(>=(threshold), viewOmega)
-            if temp !== nothing && temp > last_above
-                last_above = temp
-            end
-        end
-
-        startindex = max(first_above - 1, firstindex(t_vec))
-        endindex = min(last_above + 1, lastindex(t_vec))
+        startindex,endindex = zoomingin(Omega)
         xlims = (t_vec[startindex], t_vec[endindex])
     end
 
@@ -417,7 +404,7 @@ function plot_2sd_echo_efficiency(result)
     echo_index = searchsortedfirst(t_vec, echo_time)
     width_index = searchsortedfirst(t_vec, input.width)
 
-    inputrange = clamp.((input_index-2width_index):(input_index+3width_index), 1, length(t_vec))
+    inputrange = clamp.((input_index-3width_index):(input_index+3width_index), 1, length(t_vec))
 
     for i in 1:length(z_vec)
         input_peaks[i] = sum(Omega[inputrange, i])
@@ -479,26 +466,7 @@ function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10
     xlims = extrema(x_axis) #watch it
 
     if zoom
-        threshold = 0.001
-
-        first_above = lastindex(t_vec)
-        last_above = firstindex(t_vec)
-
-        for i in 1:length(z_vec)
-            viewOmega = @view Omega[:,i]
-            temp = findfirst(>=(threshold), viewOmega)
-            if temp !== nothing && temp < first_above
-                first_above = temp
-            end
-
-            temp = findlast(>=(threshold), viewOmega)
-            if temp !== nothing && temp > last_above
-                last_above = temp
-            end
-        end
-
-        startindex = max(first_above - 1, firstindex(t_vec))
-        endindex = min(last_above + 1, lastindex(t_vec))
+        startindex,endindex = zoomingin(Omega)
         xlims = (t_vec[startindex], t_vec[endindex])
     end
 
@@ -563,7 +531,7 @@ function plot_1sd_echo_efficiency(result)
     echo_index = searchsortedfirst(t_vec, echo_time)
     width_index = searchsortedfirst(t_vec, input.width)
 
-    inputrange = clamp.((input_index-2width_index):(input_index+3width_index), 1, length(t_vec))
+    inputrange = clamp.((input_index-3width_index):(input_index+3width_index), 1, length(t_vec))
 
     for i in 1:length(z_vec)
         input_peaks[i] = sum(Omega[inputrange, i])
