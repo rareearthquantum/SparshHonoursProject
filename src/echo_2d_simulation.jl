@@ -136,6 +136,7 @@ function run_2d_simulation(cfg)
     plot_n_save(func, name) = save_plot(result, func, plot_output_dir, name; parameter_info=parameter_info, timestamp=timestamp)
 
 
+    #=
     # Plotting
     if (cfg.Ny > 1 && cfg.Nz > 1)
         
@@ -166,4 +167,8 @@ function run_2d_simulation(cfg)
 
     # Saving jld2 data
     #save_data(result, elapsed, "prop_2d")
+    =#
+
+    plot_n_save(plot_fitted_diffraction, "testing/fits")
+
 end

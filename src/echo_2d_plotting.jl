@@ -234,10 +234,10 @@ function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
     return heatmap(t_vec, z_vec, transpose(Omega[:, :]);
-        c=:viridis, xlabel="t", ylabel="z", title=title, cbar=false)
+        c=:viridis, xlabel="\$t\$", ylabel="\$z\$", title=title, cbar=false)
 end
 
-function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_bool=false)
+function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_bool=false, size=(800,600),ylabel="",label=false)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     z_vec = result.z_vec
 
@@ -254,7 +254,7 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_b
 
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y and t" : title
 
-    return plot(x_axis, Omega_z; xlabel="z", title=title, legend=false, ylims=ylims, xlims=xlims)
+    return plot(x_axis, Omega_z; xlabel="\$z\$", ylabel=ylabel, title=title, label=label, ylims=ylims, xlims=xlims, size=size)
 end
 
 function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default, zoom=true)
@@ -274,7 +274,7 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="t", title=title, ylims=ylims, xlims=xlims)
+    fig = plot(; xlabel="\$t\$", title=title, ylims=ylims, xlims=xlims)
 
     firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
 
@@ -302,7 +302,7 @@ function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:defau
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="z", title=title, ylims=ylims, xlims=xlims, legend=false)
+    fig = plot(; xlabel="\$z\$", title=title, ylims=ylims, xlims=xlims, legend=false)
 
     delta = floor(Int, length(result.y_vec) / 2nslices)
 
@@ -340,7 +340,7 @@ function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
 
     title = (title==:default) ? "$(nameof(operation)) Omega time slice" : title
 
-    return heatmap(y_vec, z_vec, Omega_tslice; c=:viridis, xlabel="y", ylabel="z", title=title, cbar=false)
+    return heatmap(y_vec, z_vec, Omega_tslice; c=:viridis, xlabel="\$y\$", ylabel="\$z\$", title=title, cbar=false)
 end
 
 function plot_2sd_spatialslices_superimposed(result; nslices=4)
@@ -372,7 +372,7 @@ function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="t", title=title, ylims=ylims, xlims=xlims)
+    fig = plot(; xlabel="\$t\$", title=title, ylims=ylims, xlims=xlims)
 
     firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
 
@@ -413,7 +413,33 @@ function plot_2sd_echo_efficiency(result)
 
     efficiency = echo_peaks ./ input_peaks[1]
 
-    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="z")
+    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="\$z\$")
+
+    return fig
+end
+
+function plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10, title=:default, size=(800,600), ylabel="")
+    Omega = operation.(result.Omega[end÷2+1,:,:])
+    Omega ./= maximum(Omega)
+
+    y_vec = result.y_vec
+    z_vec = result.z_vec
+    title = (title==:default) ? "$(nameof(operation)) Omega" : title
+    ylims = extrema(Omega)
+    x_axis = y_vec
+    xlims = extrema(x_axis) #watch it
+
+    colgrad = cgrad([:blue, :yellow, :red])
+    colors = colgrad[range(0, 1, length=nslices)]
+    fig = plot(; xlabel="\$y\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims,size=size)
+
+    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
+
+    indices = round.(Int, range(1, length(z_vec), length=nslices))
+
+    for (i, j) in enumerate(indices)
+        plot!(x_axis, Omega[j, :], c=colors[i], label=firstlast(i))
+    end
 
     return fig
 end
@@ -452,10 +478,10 @@ function plot_1d_tz_heatmap(result; operation=abs2, title=:default)
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
     return heatmap(t_vec, z_vec, transpose(Omega[:, :]);
-        c=:viridis, xlabel="t", ylabel="z", title=title)
+        c=:viridis, xlabel="\$t\$", ylabel="\$z\$", title=title)
 end
 
-function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false)
+function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false, size=(800,600), ylabel="")
     Omega = operation.(dropdims(result.Omega; dims=3))
     Omega ./= maximum(Omega)
 
@@ -472,14 +498,14 @@ function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="t", title=title, ylims=ylims, xlims=xlims)
+    fig = plot(; xlabel="\$t\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims,size=size)
 
     firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
 
-    delta = floor(Int, length(z_vec) / nslices)
+    indices = round.(Int, range(1, length(z_vec), length=nslices))
 
-    for i in 1:nslices
-        plot!(x_axis, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
+    for (i, j) in enumerate(indices)
+        plot!(x_axis, Omega[:, j], c=colors[i], label=firstlast(i))
     end
 
     return fig
@@ -540,7 +566,7 @@ function plot_1sd_echo_efficiency(result)
 
     efficiency = echo_peaks ./ input_peaks[1]
 
-    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="z")
+    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="\$z\$")
 
     return fig
 end
@@ -604,4 +630,120 @@ function plots_for_jevon_0sd(result)
     return plot(
         pol_abs2, pol_real_n_imag; layout=(2, 1), size=(800, 600)
     )
+end
+
+#--------------------------------------------
+
+using LsqFit
+
+function plot_fitted_SIT(result;zoom=true)
+    Omega = abs2.(dropdims(sum(result.Omega;dims=3); dims=3))
+    Omega ./= maximum(Omega)
+    t_vec = result.time_vec
+
+    sech2fit(x, p)  = @. p[1] / cosh((x-p[2])/p[3])^2 + p[4]
+    gaussianfit(x, p) = @. p[1] * exp(-0.5*((x-p[2])/p[3])^2) + p[4]
+
+    # Your simulation data
+    x =  t_vec
+    y1 = Omega[:,begin]
+    y2 = Omega[:,end]
+
+    # Initial guesses
+    p01 = [maximum(y1), x[argmax(y1)], (maximum(x)-minimum(x))/10, 0.0]
+    p02 = [maximum(y2), x[argmax(y2)], (maximum(x)-minimum(x))/10, 0.0]
+
+    # Fit both
+    fit_g = curve_fit(gaussianfit, x, y1, p01)
+    fit_s = curve_fit(sech2fit, x, y2, p02)
+
+    # Best-fitting parameters
+    println(fit_g.param)
+    println(fit_s.param)
+
+    fig = plot_1d_superimposed_lines_against_t(result; title="", zoom=true, nslices=10,size=(800,600),ylabel="\$I(z)/I_{max}\$")
+    plot!(x, gaussianfit(x, fit_g.param), label="Gaussian fit", lc=:black, lw=1.5,ls=:dash)
+    plot!(x, sech2fit(x, fit_s.param), label="Sech^2 fit", lc=:black, lw=1.5,ls=:dot)
+
+    if zoom
+        startindex,endindex = zoomingin(Omega)
+        xlims = (t_vec[startindex], t_vec[endindex])
+    end
+    difffig = plot(x, y1 - gaussianfit(x, fit_g.param); label="Input face data minus Gaussian fit", size=(800,600),xlims=xlims)
+    plot!(x, y2 - sech2fit(x, fit_s.param); label="Output face data minus sech^2 fit")
+    
+
+    fig = plot(fig, difffig; layout=(1,2), size=(1600,600), bottom_margin=10mm, left_margin=10mm)
+
+    return fig
+end
+
+function plot_fitted_attenuation(result)
+    Omega = abs2.(dropdims(sum(result.Omega;dims=3); dims=3))
+    Omega ./= maximum(Omega)
+    t_vec = result.time_vec
+    z_vec = result.z_vec
+
+    # Your simulation data
+    x = z_vec
+    y = vec(sum(Omega[:,:],dims=1))
+    y ./= maximum(y)
+
+    z0 = x[begin]
+    exponentialfit(x, p) = @. p[1] * exp(-(x-z0)/p[2]) + p[3]
+
+    # Initial guesses
+    p0 = [maximum(y), (maximum(x)-minimum(x))/10, 0.0]
+
+    # Fit both
+    fit_e = curve_fit(exponentialfit, x, y, p0)
+    expfit = exponentialfit(x, fit_e.param)
+
+
+    fig = plot_2d_z_ysum_line(result; operation=abs2, title="", ylim_zoom_bool=true, size=(800,600), ylabel="\$E(z)/E_{max}\$", label="Data")
+    plot!(x, expfit, label="Exponential fit", lc=:black, lw=1.5,ls=:dash)
+
+    difffig = plot(x, y - expfit; label="Data minus exponential fit", size=(800,600), xlabel="\$z\$", ylabel="\$E(z)/E_{max}\$")
+    
+    fig = plot(fig, difffig; layout=(1,2), size=(800,300), bottom_margin=2mm, left_margin=3mm)
+
+    return fig
+end
+
+
+function plot_fitted_diffraction(result)
+    Omega = abs2.(result.Omega[end÷2+1,:,:]) #halfway in time
+    Omega ./= maximum(Omega)
+    y_vec = result.y_vec
+
+    gaussianfit(x, p) = @. p[1] * exp(-0.5*((x-p[2])/p[3])^2) + p[4]
+
+    # Your simulation data
+    x = y_vec
+    y1 = Omega[begin,:]
+    y2 = Omega[end,:]
+
+    # Initial guesses
+    p01 = [maximum(y1), x[argmax(y1)], (maximum(x)-minimum(x))/10, 0.0]
+    p02 = [maximum(y2), x[argmax(y2)], (maximum(x)-minimum(x))/10, 0.0]
+
+    # Fit both
+    fit_g1 = curve_fit(gaussianfit, x, y1, p01)
+    fit_g2 = curve_fit(gaussianfit, x, y2, p02)
+
+    # Best-fitting parameters
+    println(fit_g1.param)
+    println(fit_g2.param)
+
+    fig = plot_2d_superimposed_lines_against_y(result; title="", nslices=10,size=(800,600),ylabel="\$I(z)/I_{max}\$")
+    plot!(x, gaussianfit(x, fit_g1.param), label="Fit for input face", lc=:black, lw=1.5,ls=:dash)
+    plot!(x, gaussianfit(x, fit_g2.param), label="Fit for output face", lc=:black, lw=1.5,ls=:dot)
+
+    difffig = plot(x, y1 - gaussianfit(x, fit_g1.param); label="Input face data minus fit", size=(800,600))
+    plot!(x, y2 - gaussianfit(x, fit_g2.param); label="Output face data minus fit")
+    
+
+    fig = plot(fig, difffig; layout=(1,2), size=(1600,600), bottom_margin=10mm, left_margin=10mm)
+
+    return fig
 end
