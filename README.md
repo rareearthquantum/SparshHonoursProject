@@ -17,6 +17,7 @@ To (locally) reproduce this project, do the following:
 terminal> cd path/to/where/you/want/to/put/it/
 terminal> git clone https://github.com/rareearthquantum/SparshHonoursProject.git
 terminal> cd SparshHonoursProject
+terminal> julia
 julia> ]
 pkg> activate .
 pkg> instantiate
