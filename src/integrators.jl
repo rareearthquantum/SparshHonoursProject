@@ -30,93 +30,6 @@ end
 
 RK4Cache(u) = RK4Cache(similar(u), similar(u), similar(u), similar(u), similar(u))
 
-function rk4_step!(f, uf, ui, t, dt, p, cache::RK4Cache)
-    k1, k2, k3, k4 = cache.k1, cache.k2, cache.k3, cache.k4
-    temp = cache.temp
-
-    f(k1, ui, t, p)
-
-    @. temp = ui + (dt/2) * k1
-    f(k2, temp, t + dt/2, p)
-
-    @. temp = ui + (dt/2) * k2
-    f(k3, temp, t + dt/2, p)
-
-    @. temp = ui + dt * k3
-    f(k4, temp, t + dt, p)
-
-    @. uf = ui + (dt/6) * (k1 + 2 * k2 + 2 * k3 + k4)
-
-    return nothing
-end
-
-function rk4!(f, u, t_vec, p; substeps::Integer=1)
-    substeps >= 1 || throw(ArgumentError("substeps must be at least 1"))
-
-    dt = step(t_vec)
-    cache = @views RK4Cache(u[:, 1])
-    work = @views similar(u[:, 1])
-
-    @inbounds for i in 1:(length(t_vec)-1)
-        @views rk4_step!(f, u[:, i+1], u[:, i], t_vec[i], dt, p, cache)
-    end
-
-    return nothing
-end
-
-
-function rk4_no_substeps!(f, u, t_vec, p)
-    dt = step(t_vec)
-    cache = @views RK4Cache(u[:, 1])
-
-    @inbounds for i in 1:(length(t_vec)-1)
-        @views rk4_step!(f, u[:, i+1], u[:, i], t_vec[i], dt, p, cache)
-    end
-
-    return nothing
-end
-
-
-struct RK4whichstep
-    first::Bool
-    half::Bool
-    last::Bool
-end
-
-function rk4_step_new!(f, uf, ui, index, dt, p, cache::RK4Cache, whichsteps)
-    k1, k2, k3, k4 = cache.k1, cache.k2, cache.k3, cache.k4
-    temp = cache.temp
-
-    f(k1, ui, p, whichsteps[1], index)
-
-    @. temp = ui + (dt/2) * k1
-    f(k2, temp, p, whichsteps[2], index)
-
-    @. temp = ui + (dt/2) * k2
-    f(k3, temp, p, whichsteps[2], index)
-
-    @. temp = ui + dt * k3
-    f(k4, temp, p, whichsteps[3], index)
-
-    @. uf = ui + (dt/6) * (k1 + 2 * k2 + 2 * k3 + k4)
-
-    return nothing
-end
-
-function rk4_new!(f, u, t_vec, p)
-
-    dt = step(t_vec)
-    cache = @views RK4Cache(u[:, 1])
-    whichsteps = (RK4whichstep(true, false, false), RK4whichstep(false, true, false), RK4whichstep(false, false, true))
-
-    @inbounds for i in 1:(length(t_vec)-1)
-        @views rk4_step_new!(f, u[:, i+1], u[:, i], i, dt, p, cache, whichsteps)
-    end
-
-    return nothing
-end
-
-
 
 
 #------------------------
@@ -161,6 +74,15 @@ function rk4_custom!(u, time_vec, p, cache)
     @inbounds for i in 1:(length(time_vec)-1)
         @views rk4_custom_step!(u[:, :, i+1], u[:, :, i], i, dts, p, cache)
     end
+
+    return nothing
+end
+
+
+function field_2d!(dOmega_ky, Omega_ky, z, p)
+    alpha, P_ky, rotfactor = p
+
+    @. dOmega_ky = im * alpha * P_ky * rotfactor
 
     return nothing
 end

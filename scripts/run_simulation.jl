@@ -6,7 +6,7 @@ Pkg.activate(dirname(@__DIR__))
 
 using Dates
 
-include("../src/echo_2d_propagation.jl")
+include("../src/includes.jl")
 
 # Init config
 cfg = EchoConfig()

@@ -31,6 +31,16 @@ Now once its set up, to run any script from a fresh terminal session:
 
 ```
 terminal> cd path/to/SparshHonoursProject
-terminal> julia --project=. ./scripts/run_2d_echo_propagation.jl
+terminal> julia --project=. ./scripts/run_simulation.jl
 
 ```
+
+## Configuring Run
+
+In src/config_hardcoded.jl will be the different parameters.
+
+For 0SD (no spatial propagation at all) set Nz and Ny to 1.
+For 1SD (no transverse propagation) set Nz>1 and Ny=1.
+For 2SD both Nz and Ny > 1.
+
+To change plots, check src/plotting.jl, make sure the right plotting functions are defined or define your own, then call them in src/sim_run_n_plot.jl.
