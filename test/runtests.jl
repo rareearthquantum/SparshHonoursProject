@@ -8,7 +8,6 @@ using Unitful
 # Run test suite
 println("Starting tests")
 
-include("../src/echo_propagation.jl")
 
 #=
 
