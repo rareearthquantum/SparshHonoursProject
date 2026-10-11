@@ -24,13 +24,13 @@ end
 
 #---------------------------
 
-function zoomingin(vector;threshold=0.001)
+function zoomingin(vector; threshold=0.001)
 
-    first_above = lastindex(vector[:,1])
-    last_above = firstindex(vector[:,1])
+    first_above = lastindex(vector[:, 1])
+    last_above = firstindex(vector[:, 1])
 
-    for i in 1:length(vector[1,:])
-        viewvec = @view vector[:,i]
+    for i in 1:length(vector[1, :])
+        viewvec = @view vector[:, i]
         temp = findfirst(>=(threshold), viewvec)
         if temp !== nothing && temp < first_above
             first_above = temp
@@ -42,10 +42,10 @@ function zoomingin(vector;threshold=0.001)
         end
     end
 
-    startindex = max(first_above - 1, firstindex(vector[:,1]))
-    endindex = min(last_above + 1, lastindex(vector[:,1]))
-    
-    return (startindex,endindex)
+    startindex = max(first_above - 1, firstindex(vector[:, 1]))
+    endindex = min(last_above + 1, lastindex(vector[:, 1]))
+
+    return (startindex, endindex)
 end
 
 #--------------------------
@@ -59,7 +59,7 @@ function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
         c=:viridis, xlabel="\$t\$", ylabel="\$z\$", title=title, cbar=false)
 end
 
-function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_bool=false, size=(800,600),ylabel="",label=false)
+function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_bool=false, size=(800, 600), ylabel="", label=false)
     Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
     z_vec = result.z_vec
 
@@ -90,7 +90,7 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
     xlims = extrema(x_axis)
 
     if zoom
-        startindex,endindex = zoomingin(Omega)
+        startindex, endindex = zoomingin(Omega)
         xlims = (t_vec[startindex], t_vec[endindex])
     end
 
@@ -162,7 +162,7 @@ function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10
     xlims = extrema(x_axis) #watch it
 
     if zoom
-        startindex,endindex = zoomingin(Omega)
+        startindex, endindex = zoomingin(Omega)
         xlims = (t_vec[startindex], t_vec[endindex])
     end
 
@@ -214,8 +214,8 @@ function plot_2sd_echo_efficiency(result)
     return fig
 end
 
-function plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10, title=:default, size=(800,600), ylabel="")
-    Omega = operation.(result.Omega[end÷2+1,:,:])
+function plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10, title=:default, size=(800, 600), ylabel="")
+    Omega = operation.(result.Omega[end÷2+1, :, :])
     Omega ./= maximum(Omega)
 
     y_vec = result.y_vec
@@ -227,7 +227,7 @@ function plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="\$y\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims,size=size)
+    fig = plot(; xlabel="\$y\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims, size=size)
 
     firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
 
@@ -255,7 +255,7 @@ function plots_for_jevon_2sd_SIT(result)
     #area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
     pulse_profile_heatmap = plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title="Pulse intensity profile time slice")
     energy = plot_2d_z_ysum_line(result; operation=abs2, title="Total pulse energy")
-    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z",zoom=true)
+    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z", zoom=true)
     superimposed_area_yslices = plot_2d_z_yslices_line(result; operation=real, nslices=30, title="Pulse area slices in y against z")
     superimposed_intensity_yslices = plot_2d_z_yslices_line(result; operation=abs2, nslices=30, title="Pulse intensity slices in y against z")
 
@@ -277,7 +277,7 @@ function plot_1d_tz_heatmap(result; operation=abs2, title=:default)
         c=:viridis, xlabel="\$t\$", ylabel="\$z\$", title=title)
 end
 
-function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false, size=(800,600), ylabel="")
+function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false, size=(800, 600), ylabel="")
     Omega = operation.(dropdims(result.Omega; dims=3))
     Omega ./= maximum(Omega)
 
@@ -288,13 +288,13 @@ function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10
     xlims = extrema(x_axis) #watch it
 
     if zoom
-        startindex,endindex = zoomingin(Omega)
+        startindex, endindex = zoomingin(Omega)
         xlims = (t_vec[startindex], t_vec[endindex])
     end
 
     colgrad = cgrad([:blue, :yellow, :red])
     colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="\$t\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims,size=size)
+    fig = plot(; xlabel="\$t\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims, size=size)
 
     firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
 
@@ -432,18 +432,18 @@ end
 
 using LsqFit
 
-function plot_fitted_SIT(result;zoom=true)
-    Omega = abs2.(dropdims(sum(result.Omega;dims=3); dims=3))
+function plot_fitted_SIT(result; zoom=true)
+    Omega = abs2.(dropdims(sum(result.Omega; dims=3); dims=3))
     Omega ./= maximum(Omega)
     t_vec = result.time_vec
 
-    sech2fit(x, p)  = @. p[1] / cosh((x-p[2])/p[3])^2 + p[4]
+    sech2fit(x, p) = @. p[1] / cosh((x-p[2])/p[3])^2 + p[4]
     gaussianfit(x, p) = @. p[1] * exp(-0.5*((x-p[2])/p[3])^2) + p[4]
 
     # Your simulation data
-    x =  t_vec
-    y1 = Omega[:,begin]
-    y2 = Omega[:,end]
+    x = t_vec
+    y1 = Omega[:, begin]
+    y2 = Omega[:, end]
 
     # Initial guesses
     p01 = [maximum(y1), x[argmax(y1)], (maximum(x)-minimum(x))/10, 0.0]
@@ -457,32 +457,33 @@ function plot_fitted_SIT(result;zoom=true)
     println(fit_g.param)
     println(fit_s.param)
 
-    fig = plot_1d_superimposed_lines_against_t(result; title="", zoom=true, nslices=10,size=(800,600),ylabel="\$I(z)/I_{max}\$")
-    plot!(x, gaussianfit(x, fit_g.param), label="Gaussian fit", lc=:black, lw=1.5,ls=:dash)
-    plot!(x, sech2fit(x, fit_s.param), label="Sech^2 fit", lc=:black, lw=1.5,ls=:dot)
-
     if zoom
-        startindex,endindex = zoomingin(Omega)
+        startindex, endindex = zoomingin(Omega)
         xlims = (t_vec[startindex], t_vec[endindex])
     end
-    difffig = plot(x, y1 - gaussianfit(x, fit_g.param); label="Input face data minus Gaussian fit", size=(800,600),xlims=xlims)
-    plot!(x, y2 - sech2fit(x, fit_s.param); label="Output face data minus sech^2 fit")
-    
 
-    fig = plot(fig, difffig; layout=(1,2), size=(1600,600), bottom_margin=10mm, left_margin=10mm)
+    fig = plot(x, y1; title="", size=(800, 600), ylabel="\$I/I_{max}\$", xlabel="\$t\$", label="Input face data", lc=:red, xlims=xlims)
+    plot!(x, y2; label="Output face data", lc=:blue)
+    plot!(x, gaussianfit(x, fit_g.param), label="Gaussian fit", lc=:black, lw=2.5, ls=:dash)
+    plot!(x, sech2fit(x, fit_s.param), label="Sech^2 fit", lc=:black, lw=2.5, ls=:dashdot)
+
+    difffig = plot(x, y1 - gaussianfit(x, fit_g.param); label="Input face data minus Gaussian fit", size=(800, 600), xlims=xlims, ylabel="\$I/I_{max}\$", xlabel="\$t\$")
+    plot!(x, y2 - sech2fit(x, fit_s.param); label="Output face data minus sech^2 fit")
+
+
+    fig = plot(fig, difffig; layout=(1, 2), size=(1600, 600), bottom_margin=10mm, left_margin=10mm)
 
     return fig
 end
 
 function plot_fitted_attenuation(result)
-    Omega = abs2.(dropdims(sum(result.Omega;dims=3); dims=3))
+    Omega = abs2.(dropdims(sum(result.Omega; dims=3); dims=3))
     Omega ./= maximum(Omega)
-    t_vec = result.time_vec
     z_vec = result.z_vec
 
     # Your simulation data
     x = z_vec
-    y = vec(sum(Omega[:,:],dims=1))
+    y = vec(sum(Omega[:, :], dims=1))
     y ./= maximum(y)
 
     z0 = x[begin]
@@ -496,19 +497,19 @@ function plot_fitted_attenuation(result)
     expfit = exponentialfit(x, fit_e.param)
 
 
-    fig = plot_2d_z_ysum_line(result; operation=abs2, title="", ylim_zoom_bool=true, size=(800,600), ylabel="\$E(z)/E_{max}\$", label="Data")
-    plot!(x, expfit, label="Exponential fit", lc=:black, lw=1.5,ls=:dash)
+    fig = plot_2d_z_ysum_line(result; operation=abs2, title="", ylim_zoom_bool=true, size=(800, 600), ylabel="\$E/E_{max}\$", label="Data")
+    plot!(x, expfit, label="Exponential fit", lc=:black, lw=2.5, ls=:dash)
 
-    difffig = plot(x, y - expfit; label="Data minus exponential fit", size=(800,600), xlabel="\$z\$", ylabel="\$E(z)/E_{max}\$")
-    
-    fig = plot(fig, difffig; layout=(1,2), size=(800,300), bottom_margin=2mm, left_margin=3mm)
+    difffig = plot(x, y - expfit; label="Data minus exponential fit", size=(800, 600), xlabel="\$z\$", ylabel="\$E/E_{max}\$")
+
+    fig = plot(fig, difffig; layout=(1, 2), size=(1600, 600), bottom_margin=10mm, left_margin=10mm)
 
     return fig
 end
 
 
 function plot_fitted_diffraction(result)
-    Omega = abs2.(result.Omega[end÷2+1,:,:]) #halfway in time
+    Omega = abs2.(result.Omega[end÷2+1, :, :]) #halfway in time
     Omega ./= maximum(Omega)
     y_vec = result.y_vec
 
@@ -516,8 +517,8 @@ function plot_fitted_diffraction(result)
 
     # Your simulation data
     x = y_vec
-    y1 = Omega[begin,:]
-    y2 = Omega[end,:]
+    y1 = Omega[begin, :]
+    y2 = Omega[end, :]
 
     # Initial guesses
     p01 = [maximum(y1), x[argmax(y1)], (maximum(x)-minimum(x))/10, 0.0]
@@ -531,15 +532,16 @@ function plot_fitted_diffraction(result)
     println(fit_g1.param)
     println(fit_g2.param)
 
-    fig = plot_2d_superimposed_lines_against_y(result; title="", nslices=10,size=(800,600),ylabel="\$I(z)/I_{max}\$")
-    plot!(x, gaussianfit(x, fit_g1.param), label="Fit for input face", lc=:black, lw=1.5,ls=:dash)
-    plot!(x, gaussianfit(x, fit_g2.param), label="Fit for output face", lc=:black, lw=1.5,ls=:dot)
+    fig = plot(x, y1; title="", size=(800, 600), ylabel="\$I/I_{max}\$", label="Input face data", lc=:red, xlabel="\$y\$")
+    plot!(x, y2; label="Output face data", lc=:blue)
+    plot!(x, gaussianfit(x, fit_g1.param), label="Fit for input face", lc=:black, lw=2.5, ls=:dash)
+    plot!(x, gaussianfit(x, fit_g2.param), label="Fit for output face", lc=:black, lw=2.5, ls=:dashdot)
 
-    difffig = plot(x, y1 - gaussianfit(x, fit_g1.param); label="Input face data minus fit", size=(800,600))
+    difffig = plot(x, y1 - gaussianfit(x, fit_g1.param); label="Input face data minus fit", size=(800, 600), ylabel="\$I/I_{max}\$", xlabel="\$y\$")
     plot!(x, y2 - gaussianfit(x, fit_g2.param); label="Output face data minus fit")
-    
 
-    fig = plot(fig, difffig; layout=(1,2), size=(1600,600), bottom_margin=10mm, left_margin=10mm)
+
+    fig = plot(fig, difffig; layout=(1, 2), size=(1600, 600), bottom_margin=10mm, left_margin=10mm)
 
     return fig
 end

@@ -50,6 +50,16 @@ function run_2d_simulation(cfg)
     #save_data(result, elapsed, "prop_2d")
     =#
 
-    plot_n_save(plot_fitted_diffraction, "testing/fits")
+    if (cfg.Ny>1 && cfg.alpha==0 && cfg.beta > 0 && length(cfg.pulses)==1)
+        plot_n_save(plot_fitted_diffraction, "testing/fits")
+    end
+
+    if (cfg.beta==0 && cfg.alpha > 0 && length(cfg.pulses)==1 && cfg.pulses[1][1].area > pi)
+        plot_n_save(plot_fitted_SIT, "testing/fits")
+    end
+
+    if (cfg.beta==0 && cfg.alpha > 0 && length(cfg.pulses)==1 && cfg.pulses[1][1].area < pi)
+        plot_n_save(plot_fitted_attenuation, "testing/fits")
+    end
 
 end
