@@ -29,7 +29,7 @@ function save_plot(result, plot, plot_output_dir, subdir_name; parameter_info="p
     (isnothing(fig)) && (return nothing)
 
     animbool = typeof(fig) <: Animation
-    extension = (animbool) ? ".gif" : ".png"
+    extension = (animbool) ? ".gif" : ".pdf"
     type = (animbool) ? "animation" : "plot"
 
     output_subdir = joinpath(plot_output_dir, subdir_name)

@@ -1,28 +1,93 @@
 using Plots, Measures
+using LsqFit
 
+const PLOT_PANEL_SIZE = (800, 600)
+const PLOT_LEFT_MARGIN = 2mm
+const PLOT_BOTTOM_MARGIN = 2mm
 
-function animate_field_2d(result; filename="echo_2d.gif", fps=30, operation=abs2)
-    field_intensity = operation.(result.Omega)
-    z_vec = result.z_vec
-    y_vec = result.y_vec
-    t_vec = result.time_vec
-
-    anim = @animate for i in eachindex(t_vec)
-        heatmap(y_vec, z_vec, field_intensity[i, :, :];
-            clabel="|Ω|²",
-            ylabel="z",
-            xlabel="y",
-            clims=extrema(field_intensity),
-            legend=false,
-            title="Rabi frequency intensity at t = $(round(t_vec[i]; sigdigits=4))",
-            c=:viridis
-        )
-    end
-
-    return anim
+function _plot_margins(layout)
+    layout == (1, 2) && return (5mm, 3mm)
+    layout == (1, 3) && return (3mm, 4mm)
+    layout == (2, 2) && return (2mm, 1mm)
+    return (PLOT_LEFT_MARGIN, PLOT_BOTTOM_MARGIN)
 end
 
-#---------------------------
+function _normalise_by_max!(values)
+    values ./= maximum(values)
+    return values
+end
+
+function _unit_scale_ylims(values; padding_fraction=0.05)
+    lower = min(0.0, minimum(values))
+    upper = max(1.0, maximum(values))
+    span = upper - lower
+    padded_lower = lower < 0 ? lower - padding_fraction * span : 0.0
+    padded_upper = upper + padding_fraction * span
+    return (padded_lower, padded_upper)
+end
+
+_field_2d_summed_over_y(result, operation) =
+    dropdims(sum(operation.(result.Omega); dims=3); dims=3)
+
+_field_1d(result, operation) = operation.(dropdims(result.Omega; dims=3))
+
+_slice_colors(count) = cgrad([:blue, :yellow, :red])[range(0, 1, length=count)]
+
+function _slice_label(index, count)
+    index == 1 && return "first"
+    index == count && return "last"
+    index == count ÷ 2 + 1 && return "middle"
+    return false
+end
+
+function _add_panel_titles!(plots)
+    for (index, panel) in enumerate(plots)
+        panel_label = "($(Char(Int('a') + index - 1)))"
+        title!(panel, panel_label; titlelocation=:left)
+    end
+    return plots
+end
+
+function _compose_plots(plots...; layout)
+    _add_panel_titles!(plots)
+    rows, columns = layout
+    height = round(Int, PLOT_PANEL_SIZE[2] * rows / columns)
+    size = (PLOT_PANEL_SIZE[1], height)
+    left_margin, bottom_margin = _plot_margins(layout)
+    return plot(plots...; layout=layout, size=size,
+        left_margin=left_margin, bottom_margin=bottom_margin)
+end
+
+function _plot_tz_heatmap(time, z, field; title)
+    return heatmap(time, z, transpose(field);
+        c=:viridis, xlabel="\$t\$", ylabel="\$z\$", title=title,
+        cbar=false, size=PLOT_PANEL_SIZE)
+end
+
+function _plot_xlims(x, field, zoom)
+    zoom || return extrema(x)
+    startindex, endindex = zoomingin(field)
+    return (x[startindex], x[endindex])
+end
+
+function _plot_temporal_slices(field, time, indices; title, zoom, ylabel, size=PLOT_PANEL_SIZE)
+    xlims = _plot_xlims(time, field, zoom)
+    colors = _slice_colors(length(indices))
+    fig = plot(; xlabel="\$t\$", ylabel=ylabel, title=title, xlims=xlims, size=size)
+
+    for (i, field_index) in enumerate(indices)
+        plot!(time, field[:, field_index]; color=colors[i], label=_slice_label(i, length(indices)))
+    end
+
+    return fig
+end
+
+_gaussian_fit(x, p) = @. p[1] * exp(-0.5 * ((x-p[2])/p[3])^2) + p[4]
+_sech_squared_fit(x, p) = @. p[1] / cosh((x-p[2])/p[3])^2 + p[4]
+
+function _fit_initial_parameters(x, y)
+    return [maximum(y), x[argmax(y)], (maximum(x)-minimum(x))/10, 0.0]
+end
 
 function zoomingin(vector; threshold=0.001)
 
@@ -51,80 +116,55 @@ end
 #--------------------------
 
 function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
-    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
-    Omega ./= maximum(Omega)
-    t_vec, z_vec = result.time_vec, result.z_vec
+    Omega = _field_2d_summed_over_y(result, operation)
+    _normalise_by_max!(Omega)
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
-    return heatmap(t_vec, z_vec, transpose(Omega[:, :]);
-        c=:viridis, xlabel="\$t\$", ylabel="\$z\$", title=title, cbar=false)
+    return _plot_tz_heatmap(result.time_vec, result.z_vec, Omega; title=title)
 end
 
-function plot_2d_z_ysum_line(result; operation=abs2, title=:default, ylim_zoom_bool=false, size=(800, 600), ylabel="", label=false)
-    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
+function plot_2d_z_ysum_line(result; operation=abs2, title=:default,
+        size=PLOT_PANEL_SIZE, ylabel="", label=false, unit_scale=false)
+    Omega = _field_2d_summed_over_y(result, operation)
     z_vec = result.z_vec
 
     Omega_z = vec(sum(Omega; dims=1))
     Omega_z ./= Omega_z[begin]
 
-    min, max = extrema(Omega_z)
-    ymin = (all(>(0), Omega_z)) ? 0.0 : min-0.05abs(min)
-    ymin = (ylim_zoom_bool) ? min-0.05abs(min) : ymin
-    ymax = max+0.05abs(max)
-    ylims = (ymin, ymax)
     x_axis = z_vec
     xlims = extrema(x_axis)
 
     title = (title==:default) ? "sum $(nameof(operation)) Omega over y and t" : title
 
-    return plot(x_axis, Omega_z; xlabel="\$z\$", ylabel=ylabel, title=title, label=label, ylims=ylims, xlims=xlims, size=size)
-end
-
-function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default, zoom=true)
-    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
-    Omega ./= maximum(Omega)
-
-    t_vec, z_vec = result.time_vec, result.z_vec
-    title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
-    ylims = extrema(Omega)
-    x_axis = t_vec
-    xlims = extrema(x_axis)
-
-    if zoom
-        startindex, endindex = zoomingin(Omega)
-        xlims = (t_vec[startindex], t_vec[endindex])
-    end
-
-    colgrad = cgrad([:blue, :yellow, :red])
-    colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="\$t\$", title=title, ylims=ylims, xlims=xlims)
-
-    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
-
-    delta = floor(Int, length(z_vec) / nslices)
-
-
-    for i in 1:nslices
-        plot!(x_axis, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
-    end
-
+    fig = plot(x_axis, Omega_z; xlabel="\$z\$", ylabel=ylabel,
+        title=title, label=label, xlims=xlims, size=size)
+    unit_scale && ylims!(fig, _unit_scale_ylims(Omega_z))
     return fig
 end
 
+function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default, zoom=true, ylabel="")
+    Omega = _field_2d_summed_over_y(result, operation)
+    _normalise_by_max!(Omega)
 
-function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:default)
+    title = (title==:default) ? "sum $(nameof(operation)) Omega over y" : title
+    delta = floor(Int, length(result.z_vec) / nslices)
+    indices = 1 .+ (0:nslices-1) .* delta
+    return _plot_temporal_slices(Omega, result.time_vec, indices;
+        title=title, zoom=zoom, ylabel=ylabel)
+end
+
+
+function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:default, ylabel="")
     Omega = operation.(result.Omega[:, :, (end÷2+1):end])
     z_vec = result.z_vec
     title = (title==:default) ? "sum $(nameof(operation)) Omega and t" : title
     Omega_z = dropdims(sum(Omega; dims=1); dims=1)
-    Omega_z ./= maximum(Omega_z)
-    min, max = extrema(Omega_z)
-    ylims = (0.0, max+0.05abs(max))
+    _normalise_by_max!(Omega_z)
     x_axis = z_vec
     xlims = extrema(x_axis)
 
-    colgrad = cgrad([:blue, :yellow, :red])
-    colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="\$z\$", title=title, ylims=ylims, xlims=xlims, legend=false)
+    colors = _slice_colors(nslices)
+    fig = plot(; xlabel="\$z\$", ylabel=ylabel, title=title, xlims=xlims,
+        legend=false, size=PLOT_PANEL_SIZE)
 
     delta = floor(Int, length(result.y_vec) / 2nslices)
 
@@ -138,52 +178,33 @@ end
 
 function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
     Omega = operation.(result.Omega)
-    Omega ./= maximum(Omega)
+    _normalise_by_max!(Omega)
     y_vec, z_vec = result.y_vec, result.z_vec
 
     tindex = argmax(Omega[:, end÷2+1, end÷2+1])
     Omega_tslice = Omega[tindex, :, :]
-    Omega_tslice ./= maximum(Omega_tslice)
+    _normalise_by_max!(Omega_tslice)
 
     title = (title==:default) ? "$(nameof(operation)) Omega time slice" : title
 
-    return heatmap(y_vec, z_vec, Omega_tslice; c=:viridis, xlabel="\$y\$", ylabel="\$z\$", title=title, cbar=false)
+    return heatmap(y_vec, z_vec, Omega_tslice; c=:viridis,
+        xlabel="\$y\$", ylabel="\$z\$", title=title,
+        cbar=false, size=PLOT_PANEL_SIZE)
 end
 
 
-function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false)
-    Omega = operation.(dropdims(sum(result.Omega; dims=3); dims=3))
-    Omega ./= maximum(Omega)
+function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title="", zoom=false, ylabel="")
+    Omega = _field_2d_summed_over_y(result, operation)
+    _normalise_by_max!(Omega)
 
-    t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    ylims = extrema(Omega)
-    x_axis = t_vec
-    xlims = extrema(x_axis) #watch it
-
-    if zoom
-        startindex, endindex = zoomingin(Omega)
-        xlims = (t_vec[startindex], t_vec[endindex])
-    end
-
-    colgrad = cgrad([:blue, :yellow, :red])
-    colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="\$t\$", title=title, ylims=ylims, xlims=xlims)
-
-    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
-
-    delta = floor(Int, length(z_vec) / nslices)
-
-    for i in 1:nslices
-        plot!(x_axis, Omega[:, i*delta-(delta-1)], c=colors[i], label=firstlast(i))
-    end
-
-    return fig
+    delta = floor(Int, length(result.z_vec) / nslices)
+    indices = 1 .+ (0:nslices-1) .* delta
+    return _plot_temporal_slices(Omega, result.time_vec, indices;
+        title=title, zoom=zoom, ylabel=ylabel)
 end
 
-function plot_2sd_echo_efficiency(result)
-    Omega = abs2.(dropdims(sum(result.Omega; dims=3); dims=3))
-
+function _plot_echo_efficiency(result, Omega)
     z_vec = result.z_vec
     t_vec = result.time_vec
 
@@ -195,7 +216,6 @@ function plot_2sd_echo_efficiency(result)
     input_peaks = zeros(length(z_vec))
     echo_peaks = zeros(length(z_vec))
 
-    tau_index = searchsortedfirst(t_vec, tau)
     input_index = searchsortedfirst(t_vec, input.center)
     echo_index = searchsortedfirst(t_vec, echo_time)
     width_index = searchsortedfirst(t_vec, input.width)
@@ -209,32 +229,32 @@ function plot_2sd_echo_efficiency(result)
 
     efficiency = echo_peaks ./ input_peaks[1]
 
-    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="\$z\$")
-
-    return fig
+    return plot(z_vec, efficiency; title="Echo efficiency", xlabel="\$z\$",
+        ylabel="\$E_{echo}/E_{input,max}\$", size=PLOT_PANEL_SIZE)
 end
 
-function plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10, title=:default, size=(800, 600), ylabel="")
+function plot_2sd_echo_efficiency(result)
+    Omega = _field_2d_summed_over_y(result, abs2)
+    return _plot_echo_efficiency(result, Omega)
+end
+
+function plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10, title=:default, size=PLOT_PANEL_SIZE, ylabel="")
     Omega = operation.(result.Omega[end÷2+1, :, :])
-    Omega ./= maximum(Omega)
+    _normalise_by_max!(Omega)
 
     y_vec = result.y_vec
     z_vec = result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    ylims = extrema(Omega)
     x_axis = y_vec
     xlims = extrema(x_axis) #watch it
 
-    colgrad = cgrad([:blue, :yellow, :red])
-    colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="\$y\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims, size=size)
-
-    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
+    colors = _slice_colors(nslices)
+    fig = plot(; xlabel="\$y\$", ylabel=ylabel, title=title, xlims=xlims, size=size)
 
     indices = round.(Int, range(1, length(z_vec), length=nslices))
 
     for (i, j) in enumerate(indices)
-        plot!(x_axis, Omega[j, :], c=colors[i], label=firstlast(i))
+        plot!(x_axis, Omega[j, :], c=colors[i], label=_slice_label(i, nslices))
     end
 
     return fig
@@ -242,152 +262,98 @@ end
 
 function plots_for_jevon_2sd_echo(result)
     heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
-    superimposed_zlines_against_t = plot_2d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10)
+    superimposed_zlines_against_t = plot_2d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10, ylabel="\$I/I_{max}\$")
     echo_efficiency = plot_2sd_echo_efficiency(result)
 
-    return plot(
-        heatmap, superimposed_zlines_against_t, echo_efficiency,
-        layout=(1, 3), size=(1200, 400), margins=2mm, framestyle=:box, left_margin=4mm, bottom_margin=4mm)
+    return _compose_plots(superimposed_zlines_against_t, echo_efficiency;
+        layout=(1, 2))
 end
 
 function plots_for_jevon_2sd_SIT(result)
     heatmap = plot_2d_tz_ysum_heatmap(result; operation=abs2, title="Pulse intensity")
     #area = plot_2d_z_ysum_line(result; operation=real, title="Total pulse area")
     pulse_profile_heatmap = plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title="Pulse intensity profile time slice")
-    energy = plot_2d_z_ysum_line(result; operation=abs2, title="Total pulse energy")
-    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in z", zoom=true)
-    superimposed_area_yslices = plot_2d_z_yslices_line(result; operation=real, nslices=30, title="Pulse area slices in y against z")
-    superimposed_intensity_yslices = plot_2d_z_yslices_line(result; operation=abs2, nslices=30, title="Pulse intensity slices in y against z")
+    energy = plot_2d_z_ysum_line(result; operation=abs2,
+        title="Total pulse energy", ylabel="\$E/E(0)\$", unit_scale=true)
+    superimposed = plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=20, title="Pulse intensity slices in \$z\$", zoom=true, ylabel="\$I/I_{max}\$")
+    superimposed_area_yslices = plot_2d_z_yslices_line(result; operation=real, nslices=30, title="Pulse area slices in \$y\$ against \$z\$", ylabel="\$A/A_{max}\$")
+    superimposed_intensity_yslices = plot_2d_z_yslices_line(result; operation=abs2, nslices=30, title="Pulse intensity slices in \$y\$ against \$z\$", ylabel="\$I/I_{max}\$")
 
-    return plot(
+    return _compose_plots(
         heatmap, pulse_profile_heatmap, superimposed_area_yslices,
         superimposed, energy, superimposed_intensity_yslices,
-        layout=(2, 3), size=(1600, 1000), margins=3mm, framestyle=:box, left_margin=5mm, bottom_margin=5mm)
+        layout=(2, 3))
 end
 
 
 #-------------------------------------------
 
 function plot_1d_tz_heatmap(result; operation=abs2, title=:default)
-    Omega = operation.(dropdims(result.Omega; dims=3))
-    Omega ./= maximum(Omega)
-    t_vec, z_vec = result.time_vec, result.z_vec
+    Omega = _field_1d(result, operation)
+    _normalise_by_max!(Omega)
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    return heatmap(t_vec, z_vec, transpose(Omega[:, :]);
-        c=:viridis, xlabel="\$t\$", ylabel="\$z\$", title=title)
+    return _plot_tz_heatmap(result.time_vec, result.z_vec, Omega; title=title)
 end
 
-function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false, size=(800, 600), ylabel="")
-    Omega = operation.(dropdims(result.Omega; dims=3))
-    Omega ./= maximum(Omega)
+function plot_1d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title=:default, zoom=false, size=PLOT_PANEL_SIZE, ylabel="")
+    Omega = _field_1d(result, operation)
+    _normalise_by_max!(Omega)
 
-    t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    ylims = extrema(Omega)
-    x_axis = t_vec
-    xlims = extrema(x_axis) #watch it
-
-    if zoom
-        startindex, endindex = zoomingin(Omega)
-        xlims = (t_vec[startindex], t_vec[endindex])
-    end
-
-    colgrad = cgrad([:blue, :yellow, :red])
-    colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="\$t\$", ylabel=ylabel, title=title, ylims=ylims, xlims=xlims, size=size)
-
-    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
-
-    indices = round.(Int, range(1, length(z_vec), length=nslices))
-
-    for (i, j) in enumerate(indices)
-        plot!(x_axis, Omega[:, j], c=colors[i], label=firstlast(i))
-    end
-
-    return fig
+    indices = round.(Int, range(1, length(result.z_vec), length=nslices))
+    return _plot_temporal_slices(Omega, result.time_vec, indices;
+        title=title, zoom=zoom, ylabel=ylabel, size=size)
 end
 
 function plot_1d_superimposed_lines_against_z(result; operation=abs2, nslices=10, title=:default)
-    Omega = operation.(dropdims(result.Omega; dims=3))
-    Omega ./= maximum(Omega)
+    Omega = _field_1d(result, operation)
+    _normalise_by_max!(Omega)
 
     t_vec, z_vec = result.time_vec, result.z_vec
     title = (title==:default) ? "$(nameof(operation)) Omega" : title
-    min, max = extrema(Omega)
-    ylims = (0.0, max+0.05abs(max))
     x_axis = z_vec
     xlims = extrema(x_axis) #watch it
 
-    colgrad = cgrad([:blue, :yellow, :red])
-    colors = colgrad[range(0, 1, length=nslices)]
-    fig = plot(; xlabel="z", title=title, ylims=ylims, xlims=xlims)
-
-    firstlast = i -> (i == 1) ? "first" : ((i==nslices) ? "last" : ((i==nslices÷2+1) ? "middle" : false))
+    colors = _slice_colors(nslices)
+    fig = plot(; xlabel="\$z\$", title=title, xlims=xlims, size=PLOT_PANEL_SIZE)
 
     delta = floor(Int, length(t_vec) / nslices)
 
 
     for i in 1:nslices
-        plot!(x_axis, Omega[i*delta-(delta-1), :], c=colors[i], label=firstlast(i))
+        plot!(x_axis, Omega[i*delta-(delta-1), :], c=colors[i], label=_slice_label(i, nslices))
     end
 
     return fig
 end
 
 function plot_1sd_echo_efficiency(result)
-    Omega = abs2.(dropdims(result.Omega; dims=3))
-
-    z_vec = result.z_vec
-    t_vec = result.time_vec
-
-    input = result.cfg.pulses[1][1]
-    retrieval = result.cfg.pulses[2][1]
-    tau = retrieval.center - input.center
-    echo_time = input.center + 2tau
-
-    input_peaks = zeros(length(z_vec))
-    echo_peaks = zeros(length(z_vec))
-
-    tau_index = searchsortedfirst(t_vec, tau)
-    input_index = searchsortedfirst(t_vec, input.center)
-    echo_index = searchsortedfirst(t_vec, echo_time)
-    width_index = searchsortedfirst(t_vec, input.width)
-
-    inputrange = clamp.((input_index-3width_index):(input_index+3width_index), 1, length(t_vec))
-
-    for i in 1:length(z_vec)
-        input_peaks[i] = sum(Omega[inputrange, i])
-        echo_peaks[i] = sum(Omega[(echo_index-2width_index):end, i])
-    end
-
-    efficiency = echo_peaks ./ input_peaks[1]
-
-    fig = plot(z_vec, efficiency; title="Echo efficiency", xlabel="\$z\$")
-
-    return fig
+    Omega = _field_1d(result, abs2)
+    return _plot_echo_efficiency(result, Omega)
 end
 
 function plots_for_jevon_1sd_echo(result)
     heatmap = plot_1d_tz_heatmap(result; operation=abs2, title="Pulse intensity")
-    superimposed_zlines_against_t = plot_1d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10)
+    superimposed_zlines_against_t = plot_1d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10, ylabel="\$I/I_{max}\$")
     echo_efficiency = plot_1sd_echo_efficiency(result)
 
-    return plot(
-        heatmap, superimposed_zlines_against_t, echo_efficiency,
-        layout=(1, 3), size=(1600, 600), margins=2mm, framestyle=:box, left_margin=4mm, bottom_margin=4mm)
+    return _compose_plots(heatmap, superimposed_zlines_against_t, echo_efficiency;
+        layout=(1, 3))
 end
 
 function plots_for_jevon_1sd_SIT(result)
     heatmap = plot_1d_tz_heatmap(result; operation=abs2, title="Pulse intensity")
-    superimposed_zlines_against_t = plot_1d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10)
-    energy = plot_2d_z_ysum_line(result; operation=abs2, title="Sum of pulse intensity across \$t\$", ylim_zoom_bool=true)
-    area = plot_2d_z_ysum_line(result; operation=real, title="Pulse area", ylim_zoom_bool=true)
+    superimposed_zlines_against_t = plot_1d_superimposed_lines_against_t(result; title="Pulse intensity slices in \$z\$", zoom=true, nslices=10, ylabel="\$I/I_{max}\$")
+    energy = plot_2d_z_ysum_line(result; operation=abs2,
+        title="Total pulse energy", ylabel="\$E/E(0)\$", unit_scale=true)
+    area = plot_2d_z_ysum_line(result; operation=real,
+        title="Pulse area", ylabel="\$A/A(0)\$", unit_scale=true)
     #superimposed_tlines_against_z = plot_1d_superimposed_lines_against_z(result; operation=abs2, nslices=10, title="Pulse intensity slices in \$t\$")
 
-    return plot(
+    return _compose_plots(
         heatmap, energy,
         superimposed_zlines_against_t, area,
-        layout=(2, 2), size=(800, 500), margins=2mm, framestyle=:box, left_margin=4mm, bottom_margin=4mm)
+        layout=(2, 2))
 end
 
 #------------------------
@@ -397,7 +363,9 @@ function plot_0sd_polarisation(result)
 
     t_vec = result.time_vec
     #title = (title==:default) ? "" : title
-    fig = plot(; ylabel="\$|\\mathcal{P}|^2\$", title="Squared magnitude of the polarisation density against time")
+    fig = plot(; xlabel="\$t\$", ylabel="\$|\\mathcal{P}|^2\$",
+        title="Squared magnitude of the polarisation density against time",
+        size=PLOT_PANEL_SIZE)
 
     plot!(t_vec, P; label=false)
 
@@ -410,7 +378,9 @@ function plot_0sd_pol_complex_parts(result)
 
     t_vec = result.time_vec
 
-    fig = plot(; title="Ensemble averaged Bloch components against time")
+    fig = plot(; xlabel="\$t\$", ylabel="Bloch component",
+        title="Ensemble averaged Bloch components against time",
+        size=PLOT_PANEL_SIZE)
 
     plot!(t_vec, Pu; label="averaged u")
     plot!(t_vec, Pv; label="averaged v")
@@ -423,22 +393,15 @@ function plots_for_jevon_0sd(result)
     pol_real_n_imag = plot_0sd_pol_complex_parts(result)
 
 
-    return plot(
-        pol_abs2, pol_real_n_imag; layout=(2, 1), size=(800, 600)
-    )
+    return _compose_plots(pol_abs2, pol_real_n_imag; layout=(2, 1))
 end
 
 #--------------------------------------------
 
-using LsqFit
-
 function plot_fitted_SIT(result; zoom=true)
-    Omega = abs2.(dropdims(sum(result.Omega; dims=3); dims=3))
-    Omega ./= maximum(Omega)
+    Omega = _field_2d_summed_over_y(result, abs2)
+    _normalise_by_max!(Omega)
     t_vec = result.time_vec
-
-    sech2fit(x, p) = @. p[1] / cosh((x-p[2])/p[3])^2 + p[4]
-    gaussianfit(x, p) = @. p[1] * exp(-0.5*((x-p[2])/p[3])^2) + p[4]
 
     # Your simulation data
     x = t_vec
@@ -446,45 +409,41 @@ function plot_fitted_SIT(result; zoom=true)
     y2 = Omega[:, end]
 
     # Initial guesses
-    p01 = [maximum(y1), x[argmax(y1)], (maximum(x)-minimum(x))/10, 0.0]
-    p02 = [maximum(y2), x[argmax(y2)], (maximum(x)-minimum(x))/10, 0.0]
+    p01 = _fit_initial_parameters(x, y1)
+    p02 = _fit_initial_parameters(x, y2)
 
     # Fit both
-    fit_g = curve_fit(gaussianfit, x, y1, p01)
-    fit_s = curve_fit(sech2fit, x, y2, p02)
+    fit_g = curve_fit(_gaussian_fit, x, y1, p01)
+    fit_s = curve_fit(_sech_squared_fit, x, y2, p02)
 
     # Best-fitting parameters
     println(fit_g.param)
     println(fit_s.param)
 
-    if zoom
-        startindex, endindex = zoomingin(Omega)
-        xlims = (t_vec[startindex], t_vec[endindex])
-    end
+    gaussian_curve = _gaussian_fit(x, fit_g.param)
+    sech_curve = _sech_squared_fit(x, fit_s.param)
+    xlims = _plot_xlims(t_vec, Omega, zoom)
 
-    fig = plot(x, y1; title="", size=(800, 600), ylabel="\$I/I_{max}\$", xlabel="\$t\$", label="Input face data", lc=:red, xlims=xlims)
-    plot!(x, y2; label="Output face data", lc=:blue)
-    plot!(x, gaussianfit(x, fit_g.param), label="Gaussian fit", lc=:black, lw=2.5, ls=:dash)
-    plot!(x, sech2fit(x, fit_s.param), label="Sech^2 fit", lc=:black, lw=2.5, ls=:dashdot)
+    fig = plot(x, y1; title="", ylabel="\$I/I_{max}\$", xlabel="\$t\$", label="Input face data", xlims=xlims, legend=:topleft, st=:scatter, shape=:circle, ms=3, mc=:red, msc=:red)
+    plot!(x, y2; label="Output face data", st=:scatter, shape=:circle, ms=3, mc=:blue, msc=:blue)
+    plot!(x, gaussian_curve, label="Gaussian fit", st=:line, lc=:red, ls=:solid)
+    plot!(x, sech_curve, label="Sech^2 fit", st=:line, lc=:blue, ls=:solid)
 
-    difffig = plot(x, y1 - gaussianfit(x, fit_g.param); label="Input face data minus Gaussian fit", size=(800, 600), xlims=xlims, ylabel="\$I/I_{max}\$", xlabel="\$t\$")
-    plot!(x, y2 - sech2fit(x, fit_s.param); label="Output face data minus sech^2 fit")
+    difffig = plot(x, y1 - gaussian_curve; label="Input face data-fit difference", xlims=xlims, ylabel="\$I/I_{max}\$", xlabel="\$t\$", legend=:topleft)
+    plot!(x, y2 - sech_curve; label="Output face data-fit difference")
 
-
-    fig = plot(fig, difffig; layout=(1, 2), size=(1600, 600), bottom_margin=10mm, left_margin=10mm)
-
-    return fig
+    return _compose_plots(fig, difffig; layout=(1, 2))
 end
 
 function plot_fitted_attenuation(result)
-    Omega = abs2.(dropdims(sum(result.Omega; dims=3); dims=3))
-    Omega ./= maximum(Omega)
+    Omega = _field_2d_summed_over_y(result, abs2)
+    _normalise_by_max!(Omega)
     z_vec = result.z_vec
 
     # Your simulation data
     x = z_vec
     y = vec(sum(Omega[:, :], dims=1))
-    y ./= maximum(y)
+    _normalise_by_max!(y)
 
     z0 = x[begin]
     exponentialfit(x, p) = @. p[1] * exp(-(x-z0)/p[2]) + p[3]
@@ -497,23 +456,19 @@ function plot_fitted_attenuation(result)
     expfit = exponentialfit(x, fit_e.param)
 
 
-    fig = plot_2d_z_ysum_line(result; operation=abs2, title="", ylim_zoom_bool=true, size=(800, 600), ylabel="\$E/E_{max}\$", label="Data")
-    plot!(x, expfit, label="Exponential fit", lc=:black, lw=2.5, ls=:dash)
+    fig = plot(x, y; title="", xlabel ="\$z\$", ylabel="\$E/E_{max}\$", label="Data", st=:scatter, shape=:circle, ms=3, mc=:red, msc=:red, lc=:red)
+    plot!(x, expfit, label="Exponential fit", st=:line, lc=:red, ls=:solid)
 
-    difffig = plot(x, y - expfit; label="Data minus exponential fit", size=(800, 600), xlabel="\$z\$", ylabel="\$E/E_{max}\$")
+    difffig = plot(x, y - expfit; label="Data-fit difference", xlabel="\$z\$", ylabel="\$E/E_{max}\$")
 
-    fig = plot(fig, difffig; layout=(1, 2), size=(1600, 600), bottom_margin=10mm, left_margin=10mm)
-
-    return fig
+    return _compose_plots(fig, difffig; layout=(1, 2))
 end
 
 
 function plot_fitted_diffraction(result)
     Omega = abs2.(result.Omega[end÷2+1, :, :]) #halfway in time
-    Omega ./= maximum(Omega)
+    _normalise_by_max!(Omega)
     y_vec = result.y_vec
-
-    gaussianfit(x, p) = @. p[1] * exp(-0.5*((x-p[2])/p[3])^2) + p[4]
 
     # Your simulation data
     x = y_vec
@@ -521,27 +476,27 @@ function plot_fitted_diffraction(result)
     y2 = Omega[end, :]
 
     # Initial guesses
-    p01 = [maximum(y1), x[argmax(y1)], (maximum(x)-minimum(x))/10, 0.0]
-    p02 = [maximum(y2), x[argmax(y2)], (maximum(x)-minimum(x))/10, 0.0]
+    p01 = _fit_initial_parameters(x, y1)
+    p02 = _fit_initial_parameters(x, y2)
 
     # Fit both
-    fit_g1 = curve_fit(gaussianfit, x, y1, p01)
-    fit_g2 = curve_fit(gaussianfit, x, y2, p02)
+    fit_g1 = curve_fit(_gaussian_fit, x, y1, p01)
+    fit_g2 = curve_fit(_gaussian_fit, x, y2, p02)
 
     # Best-fitting parameters
     println(fit_g1.param)
     println(fit_g2.param)
 
-    fig = plot(x, y1; title="", size=(800, 600), ylabel="\$I/I_{max}\$", label="Input face data", lc=:red, xlabel="\$y\$")
-    plot!(x, y2; label="Output face data", lc=:blue)
-    plot!(x, gaussianfit(x, fit_g1.param), label="Fit for input face", lc=:black, lw=2.5, ls=:dash)
-    plot!(x, gaussianfit(x, fit_g2.param), label="Fit for output face", lc=:black, lw=2.5, ls=:dashdot)
+    input_curve = _gaussian_fit(x, fit_g1.param)
+    output_curve = _gaussian_fit(x, fit_g2.param)
 
-    difffig = plot(x, y1 - gaussianfit(x, fit_g1.param); label="Input face data minus fit", size=(800, 600), ylabel="\$I/I_{max}\$", xlabel="\$y\$")
-    plot!(x, y2 - gaussianfit(x, fit_g2.param); label="Output face data minus fit")
+    fig = plot(x, y1; title="", ylabel="\$I/I_{max}\$", label="Input face data", xlabel="\$y\$", st=:scatter, shape=:circle, ms=3, mc=:red, msc=:red, lc=:red)
+    plot!(x, y2; label="Output face data", st=:scatter, shape=:circle, ms=3, mc=:blue, msc=:blue, lc=:blue)
+    plot!(x, input_curve, label="Fit for input face", st=:line, lc=:red, ls=:solid)
+    plot!(x, output_curve, label="Fit for output face", st=:line, lc=:blue, ls=:solid)
 
+    difffig = plot(x, y1 - input_curve; label="Input face data-fit difference", ylabel="\$I/I_{max}\$", xlabel="\$y\$")
+    plot!(x, y2 - output_curve; label="Output face data-fit difference")
 
-    fig = plot(fig, difffig; layout=(1, 2), size=(1600, 600), bottom_margin=10mm, left_margin=10mm)
-
-    return fig
+    return _compose_plots(fig, difffig; layout=(1, 2))
 end

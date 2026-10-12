@@ -8,7 +8,7 @@ meters(x::Unitful.AbstractQuantity) = ustrip(Float64, u"m", x)
 coupling_si(x::Real) = Float64(x)
 coupling_si(x::Unitful.AbstractQuantity) = ustrip(Float64, u"s^-1*m^-1", x)
 
-function default_echo_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
+function default_echo_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
         (PulseParams(Ti + duration/10, duration/25, pi/2), PulseParams(0.0, y_pulse_width, 1.0)),
@@ -16,21 +16,35 @@ function default_echo_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real=1.0)
     ]
 end
 
-function default_soliton_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
+function default_soliton_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 2duration/10, duration/20, 2pi), PulseParams(0.0, 1.0, 1.0))
+        (PulseParams(Ti + 2duration/10, duration/50, 2pi), PulseParams(0.0, 1.0, 1.0))
     ]
 end
 
-function default_weak_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
+function default_4pi_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
+    duration = Tf - Ti
+    return [
+        (PulseParams(Ti + 2duration/10, duration/20, 4pi), PulseParams(0.0, 1.0, 1.0))
+    ]
+end
+
+function default_6pi_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
+    duration = Tf - Ti
+    return [
+        (PulseParams(Ti + 2duration/10, duration/20, 6pi), PulseParams(0.0, 1.0, 1.0))
+    ]
+end
+
+function default_weak_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
         (PulseParams(Ti + duration/2, duration/10, pi/8), PulseParams(0.0, 1.0, 1.0))
     ]
 end
 
-function default_pi_2d_pulses(Ti::Real, Tf::Real; y_pulse_width::Real)
+function default_pi_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
         (PulseParams(Ti + 3duration/10, duration/50, pi), PulseParams(0.0, 1.0, 1.0))
@@ -57,7 +71,7 @@ Base.@kwdef struct EchoConfig
     Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
     Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2
 
-    pulses::Vector{NTuple{2,PulseParams}} = default_weak_2d_pulses(Ti, Tf; y_pulse_width)
+    pulses::Vector{NTuple{2,PulseParams}} = default_weak_2d_pulses(; Ti, Tf, y_pulse_width)
 
     function EchoConfig(
         Nt, Ti, Tf,
