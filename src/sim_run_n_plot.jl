@@ -95,7 +95,7 @@ function run_2d_simulation(cfg)
         )
             plot_n_save(plots_for_jevon_2sd_SIT, "testing/finalstretch")
 
-            simulation_test == :sit &&
+            simulation_test in (:sit, :sit_with_diffraction) &&
                 plot_n_save(plot_fitted_SIT, "testing/finalstretch")
             simulation_test == :attenuation &&
                 plot_n_save(plot_fitted_attenuation, "testing/finalstretch")
