@@ -6,8 +6,9 @@ function save_result(filename, result, elapsed_seconds)
         config=Dict(key => getfield(result.cfg, key) for key in fieldnames(typeof(result.cfg))),
         elapsed_seconds=elapsed_seconds,
         detunings=collect(result.detunings),
-        time_vec=collect(result.time_vec),
+        t_vec=collect(result.t_vec),
         z_vec=collect(result.z_vec),
+        y_vec=collect(result.y_vec),
         Omega=result.Omega,
         P=result.P,
     )
@@ -28,19 +29,15 @@ function save_plot(result, plot, plot_output_dir, subdir_name; parameter_info="p
     fig = plot(result)
     (isnothing(fig)) && (return nothing)
 
-    animbool = typeof(fig) <: Animation
-    extension = (animbool) ? ".gif" : ".pdf"
-    type = (animbool) ? "animation" : "plot"
-
     output_subdir = joinpath(plot_output_dir, subdir_name)
     mkpath(output_subdir)
     randomnumb = rand(1:1000)
-    plot_path = joinpath(output_subdir, parameter_info * "_$(timestamp)_r$(randomnumb)" * extension)
-    (animbool) ? gif(fig, plot_path) : savefig(fig, plot_path)
+    plot_path = joinpath(output_subdir, parameter_info * "_$(timestamp)_r$(randomnumb).pdf")
+    savefig(fig, plot_path)
 
     path_elems = split(plot_path, "/")
     path_from_projroot = path_elems[end-2] * "/" * path_elems[end-1] * "/"
-    println("Saved " * type * " to directory .../PROJECT_ROOT/" * path_from_projroot)
+    println("Saved plot to directory .../PROJECT_ROOT/" * path_from_projroot)
 end
 
 function save_data(result, elapsed, subdir_name; parameter_info="placeholder", timestamp="placeholder")

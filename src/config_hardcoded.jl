@@ -19,38 +19,46 @@ end
 function default_soliton_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 2duration/10, duration/50, 2pi), PulseParams(0.0, 1.0, 1.0))
+        (PulseParams(Ti + 2duration/10, duration/50, 2pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
 function default_4pi_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 2duration/10, duration/20, 4pi), PulseParams(0.0, 1.0, 1.0))
+        (PulseParams(Ti + 2duration/10, duration/20, 4pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
 function default_6pi_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 2duration/10, duration/20, 6pi), PulseParams(0.0, 1.0, 1.0))
+        (PulseParams(Ti + 2duration/10, duration/20, 6pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
 function default_weak_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + duration/2, duration/10, pi/8), PulseParams(0.0, 1.0, 1.0))
+        (PulseParams(Ti + duration/2, duration/10, pi/8), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
 function default_pi_2d_pulses(;Ti::Real=0.0, Tf::Real=1.0, y_pulse_width::Real=1.0)
     duration = Tf - Ti
     return [
-        (PulseParams(Ti + 3duration/10, duration/50, pi), PulseParams(0.0, 1.0, 1.0))
+        (PulseParams(Ti + 3duration/10, duration/50, pi), PulseParams(0.0, y_pulse_width, 1.0))
     ]
 end
 
+"""
+    EchoConfig(; kwargs...)
+
+Simulation parameters. `Nd`, `Nz`, and `Ny` values of 0 or 1 select a single
+point and are stored as 1. Time evolution requires `Nt >= 2`.
+Single detuning and spatial coordinates are zero. See README.md for units,
+pulse conventions, and the supported spatial grids.
+"""
 Base.@kwdef struct EchoConfig
     Nt::Int = 256
     Ti::Float64 = 0.0
@@ -63,10 +71,10 @@ Base.@kwdef struct EchoConfig
     Zi::Float64 = 0.0
     Zf::Float64 = 1.0
 
-    alpha::Float64 = 3000.0*0
-    beta::Float64 = 0.0+1
+    alpha::Float64 = 0.0
+    beta::Float64 = 1.0
 
-    Ny::Int = 64 * 2
+    Ny::Int = 128
     y_pulse_width::Float64 = 1.0
     Yi::Float64 = -y_width(y_pulse_width, beta, Zf-Zi)/2
     Yf::Float64 = y_width(y_pulse_width, beta, Zf-Zi)/2
@@ -97,18 +105,30 @@ Base.@kwdef struct EchoConfig
         Yi = Float64(Yi)
         Yf = Float64(Yf)
 
-        Nt >= 1 || throw(ArgumentError("Nt must be positive"))
-        Nd >= 1 || throw(ArgumentError("Nd must be positive"))
-        Nz >= 1 || throw(ArgumentError("Nz must be positive"))
-        Ny >= 1 || throw(ArgumentError("Ny must be positive"))
+        Nt >= 2 || throw(ArgumentError("Nt must be at least 2 to define a time step"))
+        Nd >= 0 || throw(ArgumentError("Nd must be non-negative"))
+        Nz >= 0 || throw(ArgumentError("Nz must be non-negative"))
+        Ny >= 0 || throw(ArgumentError("Ny must be non-negative"))
+        Nd = max(1, Nd)
+        Nz = max(1, Nz)
+        Ny = max(1, Ny)
+
+        all(isfinite, (Ti, Tf, d_width, Zi, Zf, alpha, beta, y_pulse_width, Yi, Yf)) ||
+            throw(ArgumentError("configuration values must be finite"))
+        for pair in pulses, params in pair
+            all(isfinite, (params.center, params.width, params.area)) ||
+                throw(ArgumentError("pulse parameters must be finite"))
+            params.width > 0 || throw(ArgumentError("pulse widths must be positive"))
+        end
 
         Ti < Tf || throw(ArgumentError("Ti must be less than Tf"))
-        Zi < Zf || throw(ArgumentError("Zi must be less than Zf"))
+        Nz == 1 || Zi < Zf ||
+            throw(ArgumentError("Zi must be less than Zf when Nz > 1"))
         Ny == 1 || Yi < Yf ||
             throw(ArgumentError("Yi must be less than Yf when Ny > 1"))
 
-        d_width > 0 ||
-            throw(ArgumentError("d_width must be positive"))
+        (Nd == 1 ? d_width >= 0 : d_width > 0) ||
+            throw(ArgumentError("d_width must be positive for Nd > 1, or non-negative for a single detuning"))
         y_pulse_width > 0 ||
             throw(ArgumentError("y_pulse_width must be positive"))
 
@@ -126,7 +146,7 @@ Base.@kwdef struct EchoConfig
     end
 end
 
-make_detunings(cfg::EchoConfig) = LinRange(-cfg.d_width/2, cfg.d_width/2, cfg.Nd)
+make_detunings(cfg::EchoConfig) = cfg.Nd == 1 ? [0.0] : LinRange(-cfg.d_width/2, cfg.d_width/2, cfg.Nd)
 make_time_grid(cfg::EchoConfig) = LinRange(cfg.Ti, cfg.Tf, cfg.Nt)
 make_z_grid(cfg::EchoConfig) = (cfg.Nz==1) ? [0.0] : LinRange(cfg.Zi, cfg.Zf, cfg.Nz)
 make_y_grid(cfg::EchoConfig) = (cfg.Ny==1) ? [0.0] : LinRange(cfg.Yi, cfg.Yf, cfg.Ny)

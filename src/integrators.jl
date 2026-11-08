@@ -38,25 +38,25 @@ function rk4_custom_step!(uf, ui, index, dts, p, cache::RK4Cache)
     k1, k2, k3, k4 = cache.k1, cache.k2, cache.k3, cache.k4
     temp = cache.temp
 
-    Omega, rotate = p
-    interpOmega = 0.5 * (Omega[index] + Omega[index+1])
+    rabi_frequency, rotate = p
+    midpoint_rabi_frequency = 0.5 * (rabi_frequency[index] + rabi_frequency[index+1])
 
     @views begin
 
-        @. k1[:, 1] = -0.5im * Omega[index] * ui[:, 2] * rotate[:, 2index-1]
-        @. k1[:, 2] = 2imag(conj(Omega[index]) * ui[:, 1] * conj(rotate[:, 2index-1]))
+        @. k1[:, 1] = -0.5im * rabi_frequency[index] * ui[:, 2] * rotate[:, 2index-1]
+        @. k1[:, 2] = 2imag(conj(rabi_frequency[index]) * ui[:, 1] * conj(rotate[:, 2index-1]))
 
         @. temp = ui + dts[2] * k1
-        @. k2[:, 1] = -0.5im * interpOmega * temp[:, 2] * rotate[:, 2index]
-        @. k2[:, 2] = 2imag(conj(interpOmega) * temp[:, 1] * conj(rotate[:, 2index]))
+        @. k2[:, 1] = -0.5im * midpoint_rabi_frequency * temp[:, 2] * rotate[:, 2index]
+        @. k2[:, 2] = 2imag(conj(midpoint_rabi_frequency) * temp[:, 1] * conj(rotate[:, 2index]))
 
         @. temp = ui + dts[2] * k2
-        @. k3[:, 1] = -0.5im * interpOmega * temp[:, 2] * rotate[:, 2index]
-        @. k3[:, 2] = 2imag(conj(interpOmega) * temp[:, 1] * conj(rotate[:, 2index]))
+        @. k3[:, 1] = -0.5im * midpoint_rabi_frequency * temp[:, 2] * rotate[:, 2index]
+        @. k3[:, 2] = 2imag(conj(midpoint_rabi_frequency) * temp[:, 1] * conj(rotate[:, 2index]))
 
         @. temp = ui + dts[1] * k3
-        @. k4[:, 1] = -0.5im * Omega[index+1] * temp[:, 2] * rotate[:, 2index+1]
-        @. k4[:, 2] = 2imag(conj(Omega[index+1]) * temp[:, 1] * conj(rotate[:, 2index+1]))
+        @. k4[:, 1] = -0.5im * rabi_frequency[index+1] * temp[:, 2] * rotate[:, 2index+1]
+        @. k4[:, 2] = 2imag(conj(rabi_frequency[index+1]) * temp[:, 1] * conj(rotate[:, 2index+1]))
 
     end
 
@@ -66,12 +66,12 @@ function rk4_custom_step!(uf, ui, index, dts, p, cache::RK4Cache)
 end
 
 
-function rk4_custom!(u, time_vec, p, cache)
+function rk4_custom!(u, t_vec, p, cache)
 
-    dt = step(time_vec)
+    dt = step(t_vec)
     dts = (dt, dt/2, dt/6)
 
-    @inbounds for i in 1:(length(time_vec)-1)
+    @inbounds for i in 1:(length(t_vec)-1)
         @views rk4_custom_step!(u[:, :, i+1], u[:, :, i], i, dts, p, cache)
     end
 
@@ -79,10 +79,10 @@ function rk4_custom!(u, time_vec, p, cache)
 end
 
 
-function field_2d!(dOmega_ky, Omega_ky, z, p)
-    alpha, P_ky, rotfactor = p
+function field_2d!(rabi_frequency_derivative, rabi_frequency_spectrum, z, p)
+    alpha, polarisation_spectrum, rotfactor = p
 
-    @. dOmega_ky = im * alpha * P_ky * rotfactor
+    @. rabi_frequency_derivative = im * alpha * polarisation_spectrum * rotfactor
 
     return nothing
 end

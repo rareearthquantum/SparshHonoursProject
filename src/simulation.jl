@@ -2,22 +2,22 @@ using FFTW
 
 current_runtime(start_time) = round(time() - start_time; digits=2)
 
-make_unrotate_sigma_grid(detunings, time_vec) = [cis(-detuning * t) for detuning in detunings, t in time_vec]
+make_unrotate_sigma_grid(detunings, t_vec) = [cis(-detuning * t) for detuning in detunings, t in t_vec]
 
 function compute_polarisation_column!(
-    P_col, sigma_temp, Omega_col, unrotate_sigma_grid, time_vec, rotate_sigma, cache)
-    fill!(P_col, 0)
+    polarisation_column, atomic_state, rabi_frequency_column, unrotate_sigma_grid, t_vec, rotate_sigma, cache)
+    fill!(polarisation_column, 0)
 
-    sigma_temp[:, 1, 1] .= 0.0
-    sigma_temp[:, 2, 1] .= -1.0
-    @views rk4_custom!(sigma_temp, time_vec, (Omega_col, rotate_sigma), cache)
+    atomic_state[:, 1, 1] .= 0.0
+    atomic_state[:, 2, 1] .= -1.0
+    @views rk4_custom!(atomic_state, t_vec, (rabi_frequency_column, rotate_sigma), cache)
 
-    @inbounds for j in axes(sigma_temp, 3)
-        value = zero(eltype(P_col))
-        for d in axes(sigma_temp, 1)
-            value += sigma_temp[d, 1, j] * unrotate_sigma_grid[d, j]
+    @inbounds for j in axes(atomic_state, 3)
+        value = zero(eltype(polarisation_column))
+        for d in axes(atomic_state, 1)
+            value += atomic_state[d, 1, j] * unrotate_sigma_grid[d, j]
         end
-        P_col[j] = value / size(sigma_temp, 1)
+        polarisation_column[j] = value / size(atomic_state, 1)
     end
 
     return nothing
@@ -33,38 +33,41 @@ function run_2d_propagation(
     start_time = time()
 
     detunings = make_detunings(cfg)
-    time_vec = make_time_grid(cfg)
+    t_vec = make_time_grid(cfg)
     z_vec = make_z_grid(cfg)
     dz = (cfg.Nz==1) ? 0.0 : step(z_vec)
     y_vec = make_y_grid(cfg)
 
-    Omega = zeros(ComplexF64, length(time_vec), length(z_vec), length(y_vec))
-    Omega_input = [omega_2d_input.(time_vec, y_vec[l]) for l in eachindex(y_vec)] |> stack
-    Omega[:,1,:] .= Omega_input
+    # Field axes: time, longitudinal position, transverse position.
+    rabi_frequency = zeros(ComplexF64, length(t_vec), length(z_vec), length(y_vec))
+    input_rabi_frequency = [omega_2d_input.(t_vec, y_vec[l]) for l in eachindex(y_vec)] |> stack
+    rabi_frequency[:,1,:] .= input_rabi_frequency
 
-    sigma_temp = zeros(ComplexF64, length(detunings), 2, length(time_vec))
+    # Atomic-state axes: detuning, component (1=coherence, 2=inversion), time.
+    atomic_state = zeros(ComplexF64, length(detunings), 2, length(t_vec))
 
-    P = zeros(ComplexF64, length(time_vec), length(y_vec))
-    P_ky = similar(P)
+    # Polarisation axes: time, transverse position, at the current z plane.
+    polarisation = zeros(ComplexF64, length(t_vec), length(y_vec))
+    polarisation_spectrum = similar(polarisation)
 
-    unrotate_sigma_grid = make_unrotate_sigma_grid(detunings, time_vec)
-    field_caches = [@views AB2Cache(Omega[:, 1, l]) for l in eachindex(y_vec)]
+    unrotate_sigma_grid = make_unrotate_sigma_grid(detunings, t_vec)
+    field_caches = [@views AB2Cache(rabi_frequency[:, 1, l]) for l in eachindex(y_vec)]
 
     ky_grid = make_ky_grid(cfg)
     diffrac_rotate = @. cis(cfg.beta*ky_grid^2*dz)
     inverse_diffrac_rotate = conj.(diffrac_rotate)
 
-    Omega_ky = similar(Omega[:, 1, :])
+    rabi_frequency_spectrum = similar(rabi_frequency[:, 1, :])
 
-    rotate_sigma = Array{ComplexF64}(undef, length(detunings), 2length(time_vec))
-    halfdt = step(time_vec)/2
-    for j in eachindex(time_vec)
-        @. rotate_sigma[:, 2j-1] = cis(detunings*time_vec[j])
-        @. rotate_sigma[:, 2j] = cis(detunings*(time_vec[j]+halfdt))
+    rotate_sigma = Array{ComplexF64}(undef, length(detunings), 2length(t_vec))
+    halfdt = step(t_vec)/2
+    for j in eachindex(t_vec)
+        @. rotate_sigma[:, 2j-1] = cis(detunings*t_vec[j])
+        @. rotate_sigma[:, 2j] = cis(detunings*(t_vec[j]+halfdt))
     end
 
     threadcount = Threads.nthreads()
-    atom_caches = [@views RK4Cache(sigma_temp[:, :, 1]) for i in 1:threadcount]
+    atom_caches = [@views RK4Cache(atomic_state[:, :, 1]) for i in 1:threadcount]
 
     percent_count = 0
     tenthofNz = max(1,length(z_vec)÷10)
@@ -73,29 +76,29 @@ function run_2d_propagation(
 
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P[:,l], sigma_temp, Omega[:, j, l], unrotate_sigma_grid, time_vec, rotate_sigma, atom_caches[1]) 
+                polarisation[:,l], atomic_state, rabi_frequency[:, j, l], unrotate_sigma_grid, t_vec, rotate_sigma, atom_caches[1])
                 #need to somehow give a cache to each thread
         end
 
-        P_ky .= fft(P, 2)
-        Omega_ky .= fft(Omega[:, j, :], 2)
+        polarisation_spectrum .= fft(polarisation, 2)
+        rabi_frequency_spectrum .= fft(rabi_frequency[:, j, :], 2)
 
         for l in eachindex(ky_grid)
             @views ab2_step!(
                 field_2d!,
-                Omega[:, j+1, l],
-                Omega_ky[:, l],
+                rabi_frequency[:, j+1, l],
+                rabi_frequency_spectrum[:, l],
                 z_vec[j],
                 dz,
-                (cfg.alpha, P_ky[:, l], diffrac_rotate[l]),
+                (cfg.alpha, polarisation_spectrum[:, l], diffrac_rotate[l]),
                 field_caches[l]
             )
         end
 
-        for i in eachindex(time_vec)
-            Omega[i, j+1, :] .*= inverse_diffrac_rotate
+        for i in eachindex(t_vec)
+            rabi_frequency[i, j+1, :] .*= inverse_diffrac_rotate
         end
-        @views ifft!(Omega[:, j+1, :], 2)
+        @views ifft!(rabi_frequency[:, j+1, :], 2)
 
         
         if (j%tenthofNz==0)
@@ -108,12 +111,14 @@ function run_2d_propagation(
     if compute_final_polarisation
         for l in eachindex(y_vec)
             @views compute_polarisation_column!(
-                P[:,l], sigma_temp, Omega[:, end, l], unrotate_sigma_grid, time_vec, rotate_sigma, atom_caches[1])
+                polarisation[:,l], atomic_state, rabi_frequency[:, end, l], unrotate_sigma_grid, t_vec, rotate_sigma, atom_caches[1])
         end
     end
 
+    # Preserve the existing public result names used by plots and saved files.
     return (;
-        cfg, detunings, time_vec, z_vec, y_vec, Omega, P,
+        cfg, detunings, t_vec, z_vec, y_vec,
+        Omega=rabi_frequency, P=polarisation,
     )
 end
 

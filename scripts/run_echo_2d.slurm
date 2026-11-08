@@ -14,14 +14,14 @@
 set -euo pipefail
 
 cd "${SLURM_SUBMIT_DIR:?Submit this job from the project root}"
-mkdir -p data/slurm_data/maxwell-bloch_2d_propagation
+# Create data/slurm before calling sbatch; Slurm opens the log before this runs.
 
 export JULIA_NUM_THREADS="${SLURM_CPUS_PER_TASK:-1}"
 export GKSwstype=100
 
-echo "Echo sweep started on $(hostname) at $(date)"
+echo "Simulation started on $(hostname) at $(date)"
 echo "Working directory: $(pwd)"
 
-julia --project=. scripts/run_2d_echo_propagation.jl
+julia --project=. scripts/run_simulation.jl
 
 echo "Maxwell Bloch 2D propagation finished at $(date)"
