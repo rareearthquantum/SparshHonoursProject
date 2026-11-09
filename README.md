@@ -30,7 +30,7 @@ commands below from the repository root.
 julia --project=. scripts/run_simulation.jl
 ```
 
-The script uses `EchoConfig()` from `src/config_hardcoded.jl`. Its default is a
+The script uses `EchoConfig()` from `src/config/echo_config.jl`. Its default is a
 weak Gaussian pulse with diffraction and no atom–field coupling (`alpha=0`,
 `beta=1`). Figures are written under `plots/results/testing/finalstretch/`.
 **The script currently saves plots only**; numerical-data saving is disabled in
@@ -94,7 +94,7 @@ single-point spatial axes ignore their interval. Detuning width must be positive
 for multiple detunings, and may be zero for a single detuning. Pulse widths and
 `y_pulse_width` must be positive. Scalar and pulse parameters must be finite.
 
-Presets live in `src/pulse_presets.jl`. Available presets are
+Presets live in `src/pulses/presets.jl`. Available presets are
 `default_weak_2d_pulses`, `default_pi_2d_pulses`,
 `default_soliton_2d_pulses`, `default_4pi_2d_pulses`, `default_6pi_2d_pulses`, and
 `default_echo_2d_pulses`. All accept `Ti`, `Tf`, and `y_pulse_width` keywords.
@@ -148,32 +148,50 @@ Within the solver, the descriptive names `rabi_frequency`, `polarisation`, and
 `atomic_state` are used. Existing result fields and JLD2 keys remain `Omega` and
 `P` so existing scripts and data files keep the same interface.
 
-- `src/config_hardcoded.jl`: configuration defaults and validation.
-- `src/input_pulse_methods.jl`: Gaussian and top-hat pulse functions.
-- `src/pulse_presets.jl`: example pulse-sequence recipes.
-- `src/grids.jl`: coordinate grids and input-field construction.
-- `src/integrators.jl`: RK4 atomic integration and AB2 field stepping.
-- `src/simulation.jl`: propagation loop and result arrays.
-- `src/progress.jl`: progress reporting and elapsed-time formatting.
-- `src/plotting/helpers.jl`: shared styles, field transformations, and plot helpers.
-- `src/plotting/field_1d.jl`, `field_2d.jl`: field plots for each spatial model.
-- `src/plotting/atomic_response.jl`: polarisation and Bloch-component plots.
-- `src/plotting/echo_efficiency.jl`: echo-efficiency plots.
-- `src/plotting/panels.jl`: composition of plots into multi-panel figures.
-- `src/plotting/fitting.jl`: fitted comparisons for SIT, attenuation, and diffraction.
-- `src/plotting/selection.jl`: selection and saving of plots for a computed result.
-- `src/output/data.jl`: JLD2 result saving.
-- `src/output/figures.jl`: static PDF saving.
-- `src/output/filenames.jl`: parameter labels shared by output filenames.
-- `src/workflow/classification.jl`: experiment classification from its parameters.
-- `src/workflow/run_simulation.jl`: running the solver and coordinating figure output.
-- `scripts/run_for_plots.jl`: manually selected research examples; inspect before running.
+`src/main_include.jl` is the main entry point. Files ending in `_include.jl`
+only load the files in their component, in dependency order.
 
-Files ending in `_include.jl` only load other source files. Use
-`src/main_include.jl` as the main entry point; `src/plotting_include.jl`,
-`src/plot_fitting_include.jl`, `src/saving_include.jl`, and
-`src/sim_run_n_plot_include.jl` load their corresponding components.
-Edit the files in the subfolders when changing their implementations.
+```text
+src/
+├── main_include.jl
+├── config/
+│   └── echo_config.jl       # Defaults, configuration type, and validation
+├── pulses/
+│   ├── parameters.jl        # PulseParams and its constructor
+│   ├── gaussian.jl          # Gaussian evaluations
+│   ├── top_hat.jl           # Top-hat evaluations
+│   ├── sequences.jl         # Pulse sums and separable 2D inputs
+│   └── presets.jl           # Example experiment recipes
+├── integrators/
+│   ├── adams_bashforth.jl   # AB2 cache and stepping
+│   └── atomic_rk4.jl        # RK4 cache and atomic-state integration
+├── simulation/
+│   ├── grids.jl             # Coordinate grids and input-field construction
+│   ├── atomic_response.jl   # Coherence phases and ensemble polarisation
+│   ├── field.jl             # Spectral field derivative
+│   ├── propagation.jl       # Propagation loop and result arrays
+│   └── progress.jl          # Completion reporting and timing
+├── plotting/
+│   ├── style.jl            # Shared sizes, margins, colours, and labels
+│   ├── field_data.jl       # Field transformations and threshold bounds
+│   ├── layout.jl           # Panel labels and figure composition
+│   ├── primitives.jl       # Shared axes, heatmaps, and temporal curves
+│   ├── field_1d.jl         # Longitudinal field plots
+│   ├── field_2d.jl         # Transverse field plots
+│   ├── atomic_response.jl  # Polarisation and Bloch-component plots
+│   ├── echo_efficiency.jl  # Echo-efficiency estimates and plots
+│   ├── panels.jl           # Experiment-specific figure combinations
+│   └── fitting/            # Fit models and SIT/attenuation/diffraction plots
+├── output/                 # Filename labels, JLD2 data, and PDF output
+└── workflow/               # Experiment classification, plot selection, and execution
+```
+
+Each multi-file component has a corresponding `_include.jl` loader, omitted
+from the tree above for readability. The tests load the solver and output
+components without loading the plotting dependencies. Run scripts still use
+`src/main_include.jl`; experiment configuration belongs in those scripts.
+`scripts/run_for_plots.jl` contains manually selected research examples, so
+inspect it before running.
 
 The root `Project.toml` declares Julia dependencies, and `Manifest.toml` locks
 versions for reproducible runs. `.gitignore` excludes generated output and

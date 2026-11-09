@@ -48,3 +48,11 @@ function report_progress!(progress::SimulationProgress, completed_steps::Integer
     progress.next_percent = 10 * (percent ÷ 10 + 1)
     return nothing
 end
+
+"""
+    current_runtime(start_time)
+
+Return elapsed wall-clock seconds since `start_time` (from `time()`),
+rounded to two decimal places.
+"""
+current_runtime(start_time) = round(time() - start_time; digits=2)

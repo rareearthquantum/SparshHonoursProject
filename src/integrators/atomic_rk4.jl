@@ -1,38 +1,3 @@
-mutable struct AB2Cache{T}
-    fprev::T
-    fcurr::T
-    first_step::Bool
-end
-
-"""
-    AB2Cache(u)
-
-Allocate derivative buffers matching `u` and mark the next AB2 step as
-the first step. Use a separate cache for each independent trajectory.
-"""
-AB2Cache(u) = AB2Cache(similar(u), similar(u), true)
-
-"""
-    ab2_step!(f, uf, ui, t, dt, p, cache::AB2Cache)
-
-Advance `ui` by `dt` into `uf` using two-step Adams–Bashforth, with an
-Euler start on the first call. `f(du, u, t, p)` must fill `du` in place.
-Mutates `uf` and `cache`, assumes a fixed step size, and returns `nothing`.
-"""
-function ab2_step!(f, uf, ui, t, dt, p, cache::AB2Cache)
-    if cache.first_step
-        f(cache.fprev, ui, t, p)
-        @. uf = ui + dt * cache.fprev
-        cache.first_step = false
-    else
-        f(cache.fcurr, ui, t, p)
-        @. uf = ui + (dt/2) * (3 * cache.fcurr - cache.fprev)
-        copyto!(cache.fprev, cache.fcurr)
-    end
-
-    return nothing
-end
-
 mutable struct RK4Cache{T}
     k1::T
     k2::T
@@ -94,7 +59,6 @@ function rk4_custom_step!(uf, ui, index, dts, p, cache::RK4Cache)
     return nothing
 end
 
-
 """
     rk4_custom!(u, t_vec, p, cache)
 
@@ -111,23 +75,6 @@ function rk4_custom!(u, t_vec, p, cache)
     @inbounds for i in 1:(length(t_vec)-1)
         @views rk4_custom_step!(u[:, :, i+1], u[:, :, i], i, dts, p, cache)
     end
-
-    return nothing
-end
-
-
-"""
-    field_2d!(rabi_frequency_derivative, rabi_frequency_spectrum, z, p)
-
-Fill the spectral field derivative with `im * alpha * polarisation_spectrum
-* rotfactor`, using `p = (alpha, polarisation_spectrum, rotfactor)`.
-The field spectrum and `z` are accepted for the stepping interface.
-Mutates `rabi_frequency_derivative` and returns `nothing`.
-"""
-function field_2d!(rabi_frequency_derivative, rabi_frequency_spectrum, z, p)
-    alpha, polarisation_spectrum, rotfactor = p
-
-    @. rabi_frequency_derivative = im * alpha * polarisation_spectrum * rotfactor
 
     return nothing
 end

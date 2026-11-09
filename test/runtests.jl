@@ -1,14 +1,11 @@
 using Test
 using Dates
 
-include(joinpath(@__DIR__, "..", "src", "input_pulse_methods.jl"))
-include(joinpath(@__DIR__, "..", "src", "pulse_presets.jl"))
-include(joinpath(@__DIR__, "..", "src", "config_hardcoded.jl"))
-include(joinpath(@__DIR__, "..", "src", "grids.jl"))
-include(joinpath(@__DIR__, "..", "src", "integrators.jl"))
-include(joinpath(@__DIR__, "..", "src", "progress.jl"))
-include(joinpath(@__DIR__, "..", "src", "simulation.jl"))
-include(joinpath(@__DIR__, "..", "src", "saving_include.jl"))
+include(joinpath(@__DIR__, "..", "src", "pulses", "pulses_include.jl"))
+include(joinpath(@__DIR__, "..", "src", "config", "echo_config.jl"))
+include(joinpath(@__DIR__, "..", "src", "integrators", "integrators_include.jl"))
+include(joinpath(@__DIR__, "..", "src", "simulation", "simulation_include.jl"))
+include(joinpath(@__DIR__, "..", "src", "output", "output_include.jl"))
 
 
 """
