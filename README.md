@@ -46,7 +46,7 @@ To try a small calculation interactively, start `julia --project=.` and enter:
 
 ```julia
 using Dates
-include("src/includes.jl")
+include("src/main_include.jl")
 cfg = EchoConfig(Nt=128, Nd=32, Nz=8, Ny=0, alpha=100.0, beta=0.0)
 result = run_2d_propagation(cfg)
 size(result.Omega)  # (time, longitudinal position, transverse position)
@@ -56,7 +56,7 @@ size(result.P)      # (time, transverse position)
 This is an execution example, not a converged scientific calculation.
 `run_2d_propagation` returns data without saving or plotting it.
 `run_2d_simulation(cfg)` runs the solver and selects the existing research plots.
-Include `src/includes.jl` once per Julia session.
+Include `src/main_include.jl` once per Julia session.
 
 Progress reports actual completed work at roughly 10% intervals, including the
 final polarisation calculation. Use `run_2d_propagation(cfg; show_progress=false)`
@@ -170,10 +170,11 @@ Within the solver, the descriptive names `rabi_frequency`, `polarisation`, and
 - `scripts/run_for_plots.jl`: manually selected research examples; inspect before running.
 - `notebooks/old/`: historical exploratory notebooks.
 
-`src/includes.jl` remains the main entry point. The existing `src/plotting.jl`,
-`src/plot_fitting.jl`, `src/saving.jl`, and `src/sim_run_n_plot.jl` files now load
-their corresponding components, preserving existing include paths and function
-names. Edit the files in the subfolders when changing their implementations.
+Files ending in `_include.jl` only load other source files. Use
+`src/main_include.jl` as the main entry point; `src/plotting_include.jl`,
+`src/plot_fitting_include.jl`, `src/saving_include.jl`, and
+`src/sim_run_n_plot_include.jl` load their corresponding components.
+Edit the files in the subfolders when changing their implementations.
 
 Generated files in `data/` and `plots/` are ignored by Git. For shared results,
 retain the run parameters, unit conventions, Julia environment, code revision,

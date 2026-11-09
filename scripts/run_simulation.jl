@@ -6,7 +6,7 @@ Pkg.activate(dirname(@__DIR__))
 
 using Dates
 
-include("../src/includes.jl")
+include("../src/main_include.jl")
 
 # Init config
 cfg = EchoConfig()

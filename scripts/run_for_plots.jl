@@ -6,7 +6,7 @@ Pkg.activate(dirname(@__DIR__))
 
 using Dates
 
-include("../src/includes.jl")
+include("../src/main_include.jl")
 
 
 #run_2d_simulation(EchoConfig(alpha=3000,beta=0,Ny=1,Nz=128,Nd=256,Nt=512,pulses=default_weak_2d_pulses())) #attenuation 1d
