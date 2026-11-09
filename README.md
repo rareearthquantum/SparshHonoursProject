@@ -168,13 +168,18 @@ Within the solver, the descriptive names `rabi_frequency`, `polarisation`, and
 - `src/workflow/classification.jl`: experiment classification from its parameters.
 - `src/workflow/run_simulation.jl`: running the solver and coordinating figure output.
 - `scripts/run_for_plots.jl`: manually selected research examples; inspect before running.
-- `notebooks/old/`: historical exploratory notebooks.
 
 Files ending in `_include.jl` only load other source files. Use
 `src/main_include.jl` as the main entry point; `src/plotting_include.jl`,
 `src/plot_fitting_include.jl`, `src/saving_include.jl`, and
 `src/sim_run_n_plot_include.jl` load their corresponding components.
 Edit the files in the subfolders when changing their implementations.
+
+The root `Project.toml` declares Julia dependencies, and `Manifest.toml` locks
+versions for reproducible runs. `.gitignore` excludes generated output and
+temporary files; `.gitattributes` controls text handling and line endings.
+`.harper-dictionary.txt` supplies project-specific words to the Harper spellchecker.
+Git keeps local repository metadata in the hidden `.git/` directory.
 
 Generated files in `data/` and `plots/` are ignored by Git. For shared results,
 retain the run parameters, unit conventions, Julia environment, code revision,

@@ -10,6 +10,11 @@ include(joinpath(@__DIR__, "..", "src", "progress.jl"))
 include(joinpath(@__DIR__, "..", "src", "simulation.jl"))
 include(joinpath(@__DIR__, "..", "src", "saving_include.jl"))
 
+
+"""
+Note that this was made by Codex, so yeah
+"""
+
 @testset "Progress reports actual completion" begin
     for total in (1, 2, 3, 7, 64, 128)
         io = IOBuffer()
