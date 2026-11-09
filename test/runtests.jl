@@ -2,7 +2,9 @@ using Test
 using Dates
 
 include(joinpath(@__DIR__, "..", "src", "input_pulse_methods.jl"))
+include(joinpath(@__DIR__, "..", "src", "pulse_presets.jl"))
 include(joinpath(@__DIR__, "..", "src", "config_hardcoded.jl"))
+include(joinpath(@__DIR__, "..", "src", "grids.jl"))
 include(joinpath(@__DIR__, "..", "src", "integrators.jl"))
 include(joinpath(@__DIR__, "..", "src", "simulation.jl"))
 include(joinpath(@__DIR__, "..", "src", "saving.jl"))

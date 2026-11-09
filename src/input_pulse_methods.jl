@@ -1,8 +1,3 @@
-using Unitful
-
-seconds(x::Real) = Float64(x)
-seconds(x::Unitful.AbstractQuantity) = ustrip(Float64, u"s", x)
-
 function pulse(u, center, width, area)
     return area / (sqrt(2pi) * width) * exp(-0.5 * ((u - center) / width)^2)
 end
@@ -19,7 +14,7 @@ struct PulseParams
 end
 
 PulseParams(; center, width, area) =
-    PulseParams(seconds(center), seconds(width), Float64(area))
+    PulseParams(Float64(center), Float64(width), Float64(area))
 
 pulse(t, params::PulseParams) = pulse(t, params.center, params.width, params.area)
 gaussian(u, pulseparams::PulseParams) = gaussian(u, pulseparams.center, pulseparams.width, pulseparams.area)
