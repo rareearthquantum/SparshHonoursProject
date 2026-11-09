@@ -3,13 +3,40 @@ using LsqFit
 # Curve-fit comparisons for the existing research plots.
 # Shared plotting helpers are defined in helpers.jl.
 
+"""
+    _gaussian_fit(x, p)
+
+Evaluate a Gaussian plus constant offset at `x`, with
+`p = [amplitude, center, standard_deviation, offset]`.
+"""
 _gaussian_fit(x, p) = @. p[1] * exp(-0.5 * ((x-p[2])/p[3])^2) + p[4]
+"""
+    _sech_squared_fit(x, p)
+
+Evaluate a squared hyperbolic secant plus constant offset at `x`, with
+`p = [amplitude, center, width, offset]`.
+"""
 _sech_squared_fit(x, p) = @. p[1] / cosh((x-p[2])/p[3])^2 + p[4]
 
+"""
+    _fit_initial_parameters(x, y)
+
+Return initial fit parameters `[maximum(y), x[argmax(y)], span(x)/10, 0]`
+for Gaussian or squared-sech fitting. `x` and `y` must be nonempty
+corresponding sample vectors.
+"""
 function _fit_initial_parameters(x, y)
     return [maximum(y), x[argmax(y)], (maximum(x)-minimum(x))/10, 0.0]
 end
 
+"""
+    plot_fitted_SIT(result; zoom=true)
+
+Fit the transversely summed input intensity to a Gaussian and output
+intensity to a squared sech, after shared maximum normalisation. Print
+the fitted parameters and return a two-panel plot of data, fits, and
+residuals. `zoom=true` crops time to the above-threshold field region.
+"""
 function plot_fitted_SIT(result; zoom=true)
     field_values = _field_2d_summed_over_y(result, abs2)
     _normalise_by_max!(field_values)
@@ -47,6 +74,13 @@ function plot_fitted_SIT(result; zoom=true)
     return _compose_plots(fig, difffig; layout=(1, 2))
 end
 
+"""
+    plot_fitted_attenuation(result)
+
+Sum intensity over time and transverse position, normalise by its
+maximum, and fit an exponential decay plus offset along z. Return a
+two-panel plot showing the data and fit alongside their residuals.
+"""
 function plot_fitted_attenuation(result)
     field_values = _field_2d_summed_over_y(result, abs2)
     _normalise_by_max!(field_values)
@@ -58,6 +92,7 @@ function plot_fitted_attenuation(result)
     _normalise_by_max!(y)
 
     z0 = x[begin]
+    # Exponential model: p = [amplitude, decay length, offset], anchored at z0.
     exponentialfit(x, p) = @. p[1] * exp(-(x-z0)/p[2]) + p[3]
 
     # Initial guesses
@@ -77,6 +112,14 @@ function plot_fitted_attenuation(result)
 end
 
 
+"""
+    plot_fitted_diffraction(result)
+
+At the middle time sample, fit Gaussian transverse intensity profiles
+at the input and output planes after shared maximum normalisation.
+Print fitted parameters and return a two-panel plot of profiles, fits,
+and residuals.
+"""
 function plot_fitted_diffraction(result)
     field_values = abs2.(result.Omega[end÷2+1, :, :]) #halfway in time
     _normalise_by_max!(field_values)

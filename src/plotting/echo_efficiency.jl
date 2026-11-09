@@ -1,3 +1,12 @@
+"""
+    _plot_echo_efficiency(result, field_values)
+
+Return echo energy relative to input-face pulse energy versus z, using
+the time-by-z `field_values` matrix. The first two temporal pulses define
+the input and retrieval centres; the echo is expected at twice their
+separation after the input. Requires two pulses, nonzero input energy,
+and a time grid covering the integration windows.
+"""
 function _plot_echo_efficiency(result, field_values)
     z_vec = result.z_vec
     t_vec = result.t_vec
@@ -27,11 +36,24 @@ function _plot_echo_efficiency(result, field_values)
         ylabel="\$E_{echo}/E_{input,max}\$", size=PLOT_PANEL_SIZE)
 end
 
+"""
+    plot_2sd_echo_efficiency(result)
+
+Return echo efficiency versus z from intensity summed over transverse
+positions. Requires the two-pulse sequence used by
+[`_plot_echo_efficiency`](@ref).
+"""
 function plot_2sd_echo_efficiency(result)
     field_values = _field_2d_summed_over_y(result, abs2)
     return _plot_echo_efficiency(result, field_values)
 end
 
+"""
+    plot_1sd_echo_efficiency(result)
+
+Return echo efficiency versus z for a field with a singleton transverse
+axis, using the two-pulse windows in [`_plot_echo_efficiency`](@ref).
+"""
 function plot_1sd_echo_efficiency(result)
     field_values = _field_1d(result, abs2)
     return _plot_echo_efficiency(result, field_values)

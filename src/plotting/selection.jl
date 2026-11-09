@@ -1,6 +1,14 @@
-"""Select and save the existing research plots for an already computed result."""
+"""
+    save_simulation_plots(result, simulation_test, plot_output_dir; parameter_info, timestamp)
+
+Select research figures using the spatial grid and experiment classification,
+then save PDFs beneath `plot_output_dir/testing/finalstretch`. Reuse the supplied
+filename metadata for each figure. Return `nothing`; unsupported grids or
+classifications raise an error.
+"""
 function save_simulation_plots(result, simulation_test, plot_output_dir; parameter_info, timestamp)
     cfg = result.cfg
+    # Render and save one figure using this result and the shared filename metadata.
     plot_n_save(func, name) = save_plot(result, func, plot_output_dir, name; parameter_info=parameter_info, timestamp=timestamp)
 
     # Plotting

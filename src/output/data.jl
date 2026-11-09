@@ -1,6 +1,13 @@
 using JLD2
 using Dates
 
+"""
+    save_result(filename, result, elapsed_seconds)
+
+Write `result` to the JLD2 file `filename`, including configuration,
+elapsed seconds, coordinate vectors, `Omega`, and `P`. The parent
+directory must already exist; an existing file at this path is overwritten.
+"""
 function save_result(filename, result, elapsed_seconds)
     jldsave(
         filename;
@@ -15,6 +22,14 @@ function save_result(filename, result, elapsed_seconds)
     )
 end
 
+"""
+    save_data(result, elapsed, subdir_name; parameter_info="placeholder", timestamp="placeholder")
+
+Create `data/subdir_name` under the project root and save the simulation
+with [`save_result`](@ref). `elapsed` is in seconds. Placeholder metadata
+is replaced by a parameter label and current timestamp. Print the output
+directory after saving.
+"""
 function save_data(result, elapsed, subdir_name; parameter_info="placeholder", timestamp="placeholder")
     (parameter_info == "placeholder") && (parameter_info=make_param_info(result.cfg);)
     (timestamp == "placeholder") && (timestamp=Dates.format(now(), dateformat"yyyymmdd-HHMMSS-sss");)

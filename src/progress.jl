@@ -13,11 +13,26 @@ mutable struct SimulationProgress{I<:IO}
     io::I
 end
 
+"""
+    SimulationProgress(total_steps::Integer; enabled::Bool=true, io::IO=stdout)
+
+Create a progress tracker for a positive number of work steps, using a
+monotonic start time. Reports are written to `io`; `enabled=false`
+suppresses reporting. See [`report_progress!`](@ref).
+"""
 function SimulationProgress(total_steps::Integer; enabled::Bool=true, io::IO=stdout)
     total_steps > 0 || throw(ArgumentError("total_steps must be positive"))
     return SimulationProgress(Int(total_steps), 10, time_ns(), enabled, io)
 end
 
+"""
+    report_progress!(progress::SimulationProgress, completed_steps::Integer)
+
+Print and flush a completion report when the next ten-percent threshold
+is reached, then advance the threshold in `progress`. Enabled trackers
+require `0 <= completed_steps <= total_steps`; repeated completion does
+not print twice. Returns `nothing`.
+"""
 function report_progress!(progress::SimulationProgress, completed_steps::Integer)
     progress.enabled || return nothing
     0 <= completed_steps <= progress.total_steps ||

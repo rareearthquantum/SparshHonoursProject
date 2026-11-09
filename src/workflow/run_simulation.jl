@@ -1,5 +1,14 @@
 using Dates
 
+"""
+    run_2d_simulation(cfg)
+
+Classify `cfg`, run the propagation solver with timing and progress
+output, and save the selected research figures beneath `plots/results/`.
+Filenames include the classification, parameters, and timestamp. Numerical
+data saving is currently disabled. Returns `nothing` on success;
+unsupported experiment configurations or plot selections raise an error.
+"""
 function run_2d_simulation(cfg)
     simulation_test = classify_simulation(cfg)
     println("Detected simulation test: $(simulation_test)")

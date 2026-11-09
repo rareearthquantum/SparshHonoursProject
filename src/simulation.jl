@@ -1,9 +1,32 @@
 using FFTW
 
+"""
+    current_runtime(start_time)
+
+Return elapsed wall-clock seconds since `start_time` (from `time()`),
+rounded to two decimal places.
+"""
 current_runtime(start_time) = round(time() - start_time; digits=2)
 
+"""
+    make_unrotate_sigma_grid(detunings, t_vec)
+
+Return the detuning-by-time complex phase matrix `cis(-detuning * t)`
+used to transform atomic coherence back before averaging.
+"""
 make_unrotate_sigma_grid(detunings, t_vec) = [cis(-detuning * t) for detuning in detunings, t in t_vec]
 
+"""
+    compute_polarisation_column!( polarisation_column, atomic_state, rabi_frequency_column, unrotate_sigma_grid, t_vec, rotate_sigma, cache)
+
+Compute one transverse column of the ensemble-averaged coherence.
+Reset `atomic_state[detuning, component, time]` to zero initial coherence
+and inversion -1, integrate under `rabi_frequency_column`, undo detuning
+rotation, and average equally over detunings into `polarisation_column`.
+`unrotate_sigma_grid` has shape `(Nd, Nt)` and `rotate_sigma` contains
+interleaved full- and half-time-step phases. Mutates the output column,
+atomic trajectory, and RK4 cache; returns `nothing`.
+"""
 function compute_polarisation_column!(
     polarisation_column, atomic_state, rabi_frequency_column, unrotate_sigma_grid, t_vec, rotate_sigma, cache)
     fill!(polarisation_column, 0)
@@ -23,6 +46,20 @@ function compute_polarisation_column!(
     return nothing
 end
 
+"""
+    run_2d_propagation( cfg::EchoConfig=EchoConfig(); omega_2d_input=make_omega_2d_input(cfg), compute_final_polarisation::Bool=true, show_progress::Bool=true )
+
+Solve the driven two-level ensemble with longitudinal propagation and
+optional transverse diffraction. `omega_2d_input(t, y)` supplies the input
+field; its default evaluates `cfg.pulses`. Set `show_progress=false` to
+suppress progress output. This function does not save data or plots.
+
+Return a named tuple containing `cfg`, `detunings`, `t_vec`, `z_vec`,
+`y_vec`, `Omega[time, z, y]`, and `P[time, y]`. `P` is evaluated at the
+final longitudinal plane unless `compute_final_polarisation=false`, when
+it comes from the preceding plane. Local (`Nz == 1`) runs always compute
+polarisation.
+"""
 function run_2d_propagation(
     cfg::EchoConfig=EchoConfig();
     omega_2d_input=make_omega_2d_input(cfg),

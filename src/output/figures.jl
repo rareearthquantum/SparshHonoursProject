@@ -1,5 +1,14 @@
 using Dates
 
+"""
+    save_plot(result, plot, plot_output_dir, subdir_name; parameter_info="placeholder", timestamp="placeholder")
+
+Evaluate the plotting callable `plot(result)` and save its figure as a
+PDF in `plot_output_dir/subdir_name`, creating directories as needed.
+Skip saving if the callable returns `nothing`. Placeholder metadata uses
+the result configuration and current timestamp; a random suffix is added
+to the filename. Print the output directory after saving.
+"""
 function save_plot(result, plot, plot_output_dir, subdir_name; parameter_info="placeholder", timestamp="placeholder")
     (parameter_info == "placeholder") && (parameter_info=make_param_info(result.cfg))
     (timestamp == "placeholder") && (timestamp=Dates.format(now(), dateformat"yyyymmdd-HHMMSS-sss"))

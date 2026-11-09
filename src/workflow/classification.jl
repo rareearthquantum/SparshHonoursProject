@@ -1,6 +1,12 @@
 const PULSE_AREA_RTOL = 1e-8
 const PULSE_AREA_ATOL = 1e-10
 
+"""
+    _area_is(area, target)
+
+Return whether a pulse area matches `target` using the shared
+`PULSE_AREA_RTOL` and `PULSE_AREA_ATOL` tolerances.
+"""
 _area_is(area, target) = isapprox(area, target; rtol=PULSE_AREA_RTOL, atol=PULSE_AREA_ATOL)
 
 """

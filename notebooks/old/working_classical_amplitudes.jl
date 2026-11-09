@@ -87,6 +87,13 @@ md"""
 """
 
 # ╔═╡ 2f4bd1ed-3296-40a4-9b49-76b26726cb01
+"""
+    pulse( t::Float64, t0::Float64, width::Float64, A::Float64 )
+
+Evaluate the historical Gaussian `A * exp(-((t-t0)/width)^2)`.
+`A` is peak amplitude and `width` is the 1/e half-width; these notebook
+parameters differ from the area and standard deviation used in `src/`.
+"""
 function pulse(
 	t::Float64,
 	t0::Float64,
@@ -97,6 +104,12 @@ function pulse(
 end
 
 # ╔═╡ 7adaf0dc-4af6-4991-9d69-99762d159f67
+"""
+    Ein_t(t::Float64)
+
+Return the temporal input Gaussian at time `t` using this notebook's
+hard-coded centre, 1/e half-width, and peak amplitude.
+"""
 function Ein_t(t::Float64)
 	p1c, p1w, p1A = 5.0, 1.0, 1.0
 	p1 = pulse(t,p1c,p1w,p1A)
@@ -114,6 +127,14 @@ begin
 end;
 
 # ╔═╡ 9498da08-d815-45bc-9ba4-d3f043f31f08
+"""
+    adams_bashford_2step!( v::AbstractArray, f::Function, h::Float64, i::Int64, N::Int64 )
+
+Update the supplied trajectory `v` using this notebook's historical
+two-step formula with step size `h` and indexed derivative `f`. Use an
+Euler start at `i == 1` and skip indices at the end boundary. See the
+implementation below for the prototype's index and boundary conventions.
+"""
 function adams_bashford_2step!(
 	v::AbstractArray,
 	f::Function,
@@ -135,6 +156,13 @@ md"""
 """
 
 # ╔═╡ f7b70eeb-7466-4f44-990e-6ef6df51d130
+"""
+    s_evolve!(du,u,p,t)
+
+Fill `du` with the linear atomic-response derivative at time `t`.
+`p = (d, Nd, input_field)` supplies detunings, ensemble size, and a
+callable temporal field. The derivative is `im*d*u + im*input_field(t)`.
+"""
 function s_evolve!(du,u,p,t)
 	
 	d,Nd,a_interp = p
@@ -143,12 +171,30 @@ function s_evolve!(du,u,p,t)
 end
 
 # ╔═╡ a6850b3c-67ad-46b1-8d9f-82e074bbc8e1
+"""
+    a_diffeq_func(i,k)
+
+Return the field derivative at indices `(i, k)` from notebook globals
+`α` and `sm_grid`, summing the atomic response over detunings.
+"""
 a_diffeq_func(i,k) = im*α*sum(sm_grid[i,:,k])
 
 # ╔═╡ 87d903e1-b78d-44ae-806e-63e333a0e51b
+"""
+    f_a(α::Float64,grid::AbstractArray)
+
+Return `im * α * sum(grid)`, the field derivative from the supplied
+atomic coherence samples and coupling.
+"""
 f_a(α::Float64,grid::AbstractArray) = im*α*sum(grid)
 
 # ╔═╡ aebb1d0b-7aae-45d7-a098-78bb33edb989
+"""
+    a_evolve!(du,u,p,t)
+
+Fill `du` with the field derivative using `p = (α, s_grid)`. Sum the
+first axis of the atomic grid, drop that axis, and multiply by `im*α`.
+"""
 function a_evolve!(du,u,p,t)
 	
 	α,s_grid = p
@@ -162,6 +208,14 @@ md"""
 """
 
 # ╔═╡ d1cfede4-4fcf-45ab-8640-13020d81f44e
+"""
+    evolve_diff!(grids,p)
+
+Mutate the supplied atomic and field grids with this notebook's
+ODE-based propagation prototype. Parameters and derivative helpers depend
+on the notebook's coordinate, detuning, and coupling globals. This is
+exploratory code; see the implementation for its stepping conventions.
+"""
 function evolve_diff!(grids,p)
 
 	s_grid, a_grid, d_grid, z_grid, t_grid = grids
@@ -211,6 +265,13 @@ function evolve_diff!(grids,p)
 end
 
 # ╔═╡ e62b22ec-7913-4e08-be17-a06d71ef5747
+"""
+    evolve_diff_make(grids,p)
+
+Construct and propagate the hard-coded 1D example, returning
+`(z_grid, t_grid, s_grid, a_grid)`. This historical prototype ignores
+its `grids` and `p` arguments and also relies on notebook-global helpers.
+"""
 function evolve_diff_make(grids,p)
 	Nz = 128 #number of z-sites
 	Nd = 64 #number of detunings/atoms at each z-site
@@ -343,6 +404,12 @@ md"""
 """
 
 # ╔═╡ 059049f5-772a-4da0-a14f-63a97fe3d3ee
+"""
+    Ein_y(y::Float64)
+
+Return the transverse input Gaussian at `y` using this notebook's
+hard-coded centre, 1/e half-width, and peak amplitude.
+"""
 function Ein_y(y::Float64)
 	p_c, p_w, p_A = 0.0, 1.0e-1, 1.0
 	p = pulse(y,p_c,p_w,p_A)
@@ -350,6 +417,12 @@ function Ein_y(y::Float64)
 end
 
 # ╔═╡ 2c363897-d275-4452-85e1-e5753ec78cbd
+"""
+    f_a_2d( α::Float64, s_grid::AbstractArray, konstant::Float64, dy2::ComplexF64 )
+
+Return the field derivative from coupling `α`, the detuning sum of
+`s_grid`, and transverse second derivative `dy2` scaled by `konstant`.
+"""
 f_a_2d(
 	α::Float64,
 	s_grid::AbstractArray,
@@ -358,6 +431,15 @@ f_a_2d(
 ) = im*α*sum(s_grid) + im*konstant*dy2
 
 # ╔═╡ cf8a0dcc-95cd-453c-8e74-9e3c949e7a39
+"""
+    initialise_params( f::NTuple{2,Function}, N::NTuple{4,Int64}, B::NTuple{3,NTuple{2,Float64}} )
+
+Allocate this notebook's 2D simulation grids from input callables
+`f = (temporal, transverse)`, counts `N = (Nz, Nd, Nt, Ny)`, and
+bounds `B = ((Zi, Zf), (Ti, Tf), (Yi, Yf))`. Initialise the first
+atomic time plane and input field plane. Return `(grids, differentials,
+(frequencies, laplacian_factors))`; array order is defined below.
+"""
 function initialise_params(
 	f::NTuple{2,Function},
 	N::NTuple{4,Int64},
@@ -418,11 +500,26 @@ function initialise_params(
 end
 
 # ╔═╡ 2c4f68fc-64e4-4362-bbc2-3ec3016bee53
+"""
+    evolving()
+
+Placeholder for a future evolution routine. The current body is empty
+and returns `nothing`.
+"""
 function evolving()
 	
 end
 
 # ╔═╡ 5bfc90d2-02e0-420d-b47e-b706e5a86279
+"""
+    evolve_a_grid( t_grid::LinRange{Float64,Int64}, a_grid::AbstractArray, v_factor, l::Int64, α::Float64, s_grid::AbstractArray, konstant::Float64, dz::Float64, i::Int64, Nz::Int64 )
+
+Mutate the next longitudinal field plane at transverse index `l`,
+for each time in `t_grid`. Compute transverse second derivatives with
+FFT factors `v_factor`, combine diffraction and atomic response, and
+advance by `dz` with the notebook's field stepper. `i` is the current
+longitudinal index and `Nz` is the total longitudinal count.
+"""
 function evolve_a_grid(
 	t_grid::LinRange{Float64,Int64},
 	a_grid::AbstractArray,
@@ -444,6 +541,15 @@ function evolve_a_grid(
 end
 
 # ╔═╡ 22d89033-3cf0-46dc-a035-7dd464a0434e
+"""
+    evolve_diff_2d( f::NTuple{2,Function}, N::NTuple{4,Int64}, B::NTuple{3,NTuple{2,Float64}}, p::NTuple{2,Float64} )
+
+Run the notebook's 2D propagation prototype from input callables `f`,
+counts `N = (Nz, Nd, Nt, Ny)`, coordinate bounds `B`, and
+`p = (coupling, diffraction)`. Integrate the atomic response with an ODE
+solver and step the field along z. Return `((s_grid, a_grid),
+(z_grid, t_grid, y_grid))`; some prototype dependencies are notebook globals.
+"""
 function evolve_diff_2d(
 	f::NTuple{2,Function},
 	N::NTuple{4,Int64},

@@ -1,3 +1,9 @@
+"""
+    plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
+
+Return a time–z heatmap of `operation.(Omega)` summed over transverse
+positions and normalised by its maximum. `title=:default` derives a title.
+"""
 function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
     field_values = _field_2d_summed_over_y(result, operation)
     _normalise_by_max!(field_values)
@@ -5,6 +11,14 @@ function plot_2d_tz_ysum_heatmap(result; operation=abs2, title=:default)
     return _plot_tz_heatmap(result.t_vec, result.z_vec, field_values; title=title)
 end
 
+"""
+    plot_2d_z_ysum_line(result; operation=abs2, title=:default, size=PLOT_PANEL_SIZE, ylabel="", label=false, unit_scale=false)
+
+Return the field summed over time and transverse positions versus z,
+after applying `operation` and dividing by the input-plane sum.
+`unit_scale=true` extends the vertical limits to include `[0, 1]`.
+The input sum must be nonzero; sums omit grid-spacing factors.
+"""
 function plot_2d_z_ysum_line(result; operation=abs2, title=:default,
         size=PLOT_PANEL_SIZE, ylabel="", label=false, unit_scale=false)
     field_values = _field_2d_summed_over_y(result, operation)
@@ -24,6 +38,14 @@ function plot_2d_z_ysum_line(result; operation=abs2, title=:default,
     return fig
 end
 
+"""
+    plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default, zoom=true, ylabel="")
+
+Return temporal profiles of the transversely summed transformed field
+at `nslices` longitudinal indices, using global maximum normalisation.
+`zoom=true` crops time to the above-threshold region. Choose
+`1 <= nslices <= length(result.z_vec)` for distinct samples.
+"""
 function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, title=:default, zoom=true, ylabel="")
     field_values = _field_2d_summed_over_y(result, operation)
     _normalise_by_max!(field_values)
@@ -35,6 +57,14 @@ function plot_2d_superimposed_z_ysum_line(result; operation=abs2, nslices=10, ti
         title=title, zoom=zoom, ylabel=ylabel)
 end
 
+"""
+    plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:default, ylabel="")
+
+Return time-summed longitudinal curves at `nslices` transverse indices
+from the second half of the transverse grid, after applying `operation`
+and shared maximum normalisation. Choose `nslices` no larger than half
+the transverse sample count for distinct slices.
+"""
 function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:default, ylabel="")
     field_values = operation.(result.Omega[:, :, (end÷2+1):end])
     z_vec = result.z_vec
@@ -58,6 +88,13 @@ function plot_2d_z_yslices_line(result; operation=abs2, nslices=10, title=:defau
     return fig
 end
 
+"""
+    plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
+
+Return a transverse–longitudinal heatmap at the time of peak transformed
+field at the central z and y indices. Apply `operation` and normalise
+the selected time slice by its maximum.
+"""
 function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
     field_values = operation.(result.Omega)
     _normalise_by_max!(field_values)
@@ -74,6 +111,14 @@ function plot_2d_zy_pulseprofile_heatmap(result; operation=abs2, title=:default)
         cbar=false, size=PLOT_PANEL_SIZE)
 end
 
+"""
+    plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title="", zoom=false, ylabel="")
+
+Return overlaid temporal profiles of `operation.(Omega)` summed over y
+at `nslices` longitudinal indices, normalised by their global maximum.
+`zoom=true` crops the time range. Choose `nslices` no larger than the
+longitudinal sample count for distinct slices.
+"""
 function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10, title="", zoom=false, ylabel="")
     field_values = _field_2d_summed_over_y(result, operation)
     _normalise_by_max!(field_values)
@@ -85,6 +130,13 @@ function plot_2d_superimposed_lines_against_t(result; operation=abs2, nslices=10
         title=title, zoom=zoom, ylabel=ylabel)
 end
 
+"""
+    plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10, title=:default, size=PLOT_PANEL_SIZE, ylabel="")
+
+Return transverse profiles at `nslices` evenly spaced longitudinal
+indices at the middle time sample. Apply `operation` and normalise
+by the maximum over that time slice; `size` and `ylabel` style the plot.
+"""
 function plot_2d_superimposed_lines_against_y(result; operation=abs2, nslices=10, title=:default, size=PLOT_PANEL_SIZE, ylabel="")
     field_values = operation.(result.Omega[end÷2+1, :, :])
     _normalise_by_max!(field_values)

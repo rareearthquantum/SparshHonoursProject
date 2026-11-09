@@ -4,8 +4,21 @@ mutable struct AB2Cache{T}
     first_step::Bool
 end
 
+"""
+    AB2Cache(u)
+
+Allocate derivative buffers matching `u` and mark the next AB2 step as
+the first step. Use a separate cache for each independent trajectory.
+"""
 AB2Cache(u) = AB2Cache(similar(u), similar(u), true)
 
+"""
+    ab2_step!(f, uf, ui, t, dt, p, cache::AB2Cache)
+
+Advance `ui` by `dt` into `uf` using two-step Adams–Bashforth, with an
+Euler start on the first call. `f(du, u, t, p)` must fill `du` in place.
+Mutates `uf` and `cache`, assumes a fixed step size, and returns `nothing`.
+"""
 function ab2_step!(f, uf, ui, t, dt, p, cache::AB2Cache)
     if cache.first_step
         f(cache.fprev, ui, t, p)
@@ -28,12 +41,28 @@ mutable struct RK4Cache{T}
     temp::T
 end
 
+"""
+    RK4Cache(u)
+
+Allocate four stage buffers and one temporary buffer matching the shape
+and element type of `u`, for reuse by the atomic RK4 integrator.
+"""
 RK4Cache(u) = RK4Cache(similar(u), similar(u), similar(u), similar(u), similar(u))
 
 
 
 #------------------------
 
+"""
+    rk4_custom_step!(uf, ui, index, dts, p, cache::RK4Cache)
+
+Advance a detuning-by-component atomic state from `ui` into `uf` using
+RK4. Component 1 is coherence and component 2 is inversion.
+`dts = (dt, dt/2, dt/6)` and `p = (rabi_frequency, rotate)`, where the field
+is sampled on the time grid and `rotate` on its interleaved half steps.
+`index` selects the starting time sample. Mutates `uf` and `cache`;
+returns `nothing`.
+"""
 function rk4_custom_step!(uf, ui, index, dts, p, cache::RK4Cache)
     k1, k2, k3, k4 = cache.k1, cache.k2, cache.k3, cache.k4
     temp = cache.temp
@@ -66,6 +95,14 @@ function rk4_custom_step!(uf, ui, index, dts, p, cache::RK4Cache)
 end
 
 
+"""
+    rk4_custom!(u, t_vec, p, cache)
+
+Fill the atomic trajectory `u[detuning, component, time]` after its first
+time slice, using the uniform range `t_vec` and reusable RK4 `cache`.
+`p` contains the time-sampled field and half-step rotation grid as in
+[`rk4_custom_step!`](@ref). Returns `nothing`.
+"""
 function rk4_custom!(u, t_vec, p, cache)
 
     dt = step(t_vec)
@@ -79,6 +116,14 @@ function rk4_custom!(u, t_vec, p, cache)
 end
 
 
+"""
+    field_2d!(rabi_frequency_derivative, rabi_frequency_spectrum, z, p)
+
+Fill the spectral field derivative with `im * alpha * polarisation_spectrum
+* rotfactor`, using `p = (alpha, polarisation_spectrum, rotfactor)`.
+The field spectrum and `z` are accepted for the stepping interface.
+Mutates `rabi_frequency_derivative` and returns `nothing`.
+"""
 function field_2d!(rabi_frequency_derivative, rabi_frequency_spectrum, z, p)
     alpha, polarisation_spectrum, rotfactor = p
 

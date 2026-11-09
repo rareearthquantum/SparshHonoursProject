@@ -51,6 +51,13 @@ begin
 end;
 
 # ╔═╡ 1225dcb2-1f1f-4080-9ddd-bb9135ad568c
+"""
+    pulse(t,t0,width,A)
+
+Evaluate the historical Gaussian `A * exp(-((t-t0)/width)^2)`.
+`A` is peak amplitude and `width` is the 1/e half-width; these notebook
+parameters differ from the area and standard deviation used in `src/`.
+"""
 function pulse(t,t0,width,A)
 	A * exp(-((t-t0)/width)^2)
 end
@@ -61,6 +68,12 @@ Note that the fourier transform of a gaussian of the form A * exp(-((t-t0)/width
 """
 
 # ╔═╡ e5afb90d-c9e0-4f1d-b465-4c53d225fd3d
+"""
+    Ein(t)
+
+Return this notebook's prescribed temporal input field at time `t`,
+using the hard-coded Gaussian pulse parameters below.
+"""
 function Ein(t)
 	p1 = pulse(t,5.0,0.01,1.0)
 	#p2 = pulse(t,18.0,1.0,1.0)
@@ -88,6 +101,12 @@ begin
 end
 
 # ╔═╡ 6e2e41da-105f-4636-a920-56b67e2c0455
+"""
+    simpsons_rule(f, h, i)
+
+Return the historical weighted increment
+`h/6 * (f(i) + 4f(i+1) + f(i+2))` from three indexed samples.
+"""
 function simpsons_rule(f, h, i)
 	return h/6 * (f(i) + 4*f(i+1) + f(i+2))
 end
@@ -107,6 +126,12 @@ begin
 end;
 
 # ╔═╡ cdc99a19-d956-48ac-a5d0-5bc1d09f2853
+"""
+    adams_bashford_2step(f,i)
+
+Return the historical derivative estimate: `f(i)` at the first index,
+and `3f(i+1)/2 - f(i)/2` at later positive indices.
+"""
 function adams_bashford_2step(f,i)
 	if i == 1
 		f(i)
@@ -116,6 +141,14 @@ function adams_bashford_2step(f,i)
 end
 
 # ╔═╡ 39ceec9d-2e9e-4915-87c7-d1f217457adf
+"""
+    adams_bashford_2step!(v,f,h,i,N)
+
+Update the supplied trajectory `v` using this notebook's historical
+two-step formula with step size `h` and indexed derivative `f`. Use an
+Euler start at `i == 1` and skip indices at the end boundary. See the
+implementation below for the prototype's index and boundary conventions.
+"""
 function adams_bashford_2step!(v,f,h,i,N)
 	if i >= N-2
 		return
@@ -129,6 +162,13 @@ function adams_bashford_2step!(v,f,h,i,N)
 end
 
 # ╔═╡ 2c793841-9549-4b78-a56c-4e4e4d901696
+"""
+    euler_step!(v,f,h,i,N)
+
+Write the forward Euler update `v[i+1] = v[i] + h*f(i)` in place.
+The overload with `N` skips indices at or beyond `N-1`; otherwise the
+caller must ensure that the next sample exists.
+"""
 function euler_step!(v,f,h,i,N)
 	if i >= N-1
 		return
@@ -138,6 +178,13 @@ function euler_step!(v,f,h,i,N)
 end
 
 # ╔═╡ 52598b42-4676-476e-93d6-7f7d7555c4f4
+"""
+    s_evolve!(du,u,p,t)
+
+Fill `du` with the linear atomic-response derivative at time `t`.
+`p = (d, Nd, input_field)` supplies detunings, ensemble size, and a
+callable temporal field. The derivative is `im*d*u + im*input_field(t)`.
+"""
 function s_evolve!(du,u,p,t)
 	
 	d,Nd, a_func = p
@@ -151,12 +198,32 @@ md"""
 """
 
 # ╔═╡ d9a4465c-936c-4a2e-b3b6-82ad297c4e6b
+"""
+    fs1(i,j,k)
+
+Return the atomic derivative at longitudinal, detuning, and time indices
+`(i, j, k)`, reading the notebook globals `d_grid`, `s_grid`, and `a_grid`.
+"""
 fs1(i,j,k) = im*d_grid[i,j]*s_grid[i,j,k] + im*a_grid[i,k]
 
 # ╔═╡ 8f588082-1c59-4f97-b2c8-fe9b5d49220c
+"""
+    fa1(i,k)
+
+Return the field derivative at longitudinal and time indices `(i, k)`
+from the sum of the notebook's atomic coherence over detunings, using
+the global coupling and `s_grid`.
+"""
 fa1(i,k) = im*α*sum(s_grid[i,:,k])
 
 # ╔═╡ 0dcacd52-9505-4220-98c8-3727c4faef3f
+"""
+    evolve_euler!(grids,differentials,N,p)
+
+Mutate `(s_grid, a_grid)` using forward Euler steps in time and z.
+`differentials = (dt, dz)`, `N = (Nz, Nd, Nt)`, and `p` is coupling.
+The derivative helpers also read notebook globals.
+"""
 function evolve_euler!(grids,differentials,N,p)
 
 	s_grid, a_grid = grids
@@ -181,6 +248,13 @@ function evolve_euler!(grids,differentials,N,p)
 end
 
 # ╔═╡ 47a9af0b-f2c5-4d3e-80df-78d645e98b07
+"""
+    evolve_euler2!(grids,differentials,N,p)
+
+Mutate `(s_grid, a_grid)` using the notebook's Euler atomic stepper
+and historical two-step field stepper. `differentials = (dt, dz)`,
+`N = (Nz, Nd, Nt)`, and `p` is coupling; helpers read notebook globals.
+"""
 function evolve_euler2!(grids,differentials,N,p)
 
 	s_grid, a_grid = grids
@@ -209,6 +283,14 @@ function evolve_euler2!(grids,differentials,N,p)
 end
 
 # ╔═╡ da023b53-a8aa-44a0-9a9b-c8e7b9fcdbcf
+"""
+    evolve_diff!(grids,differentials,N,p)
+
+Mutate the supplied atomic and field grids with this notebook's
+ODE-based propagation prototype. Parameters and derivative helpers depend
+on the notebook's coordinate, detuning, and coupling globals. This is
+exploratory code; see the implementation for its stepping conventions.
+"""
 function evolve_diff!(grids,differentials,N,p)
 
 	s_grid, a_grid = grids
@@ -236,6 +318,14 @@ function evolve_diff!(grids,differentials,N,p)
 end
 
 # ╔═╡ ef26fc69-7e3e-4ffe-be3f-02bbfaa73f30
+"""
+    evolve_rk4_proto!(grids,differentials,N)
+
+Mutate `(s_grid, a_grid)` using the historical Euler-start and weighted
+three-sample integration prototype. `differentials = (dt, dz)` and
+`N = (Nz, Nd, Nt)`. Uses notebook-global derivative helpers and
+`my_rk4_term`; this is an exploratory scheme.
+"""
 function evolve_rk4_proto!(grids,differentials,N)
 	
 	s_grid, a_grid = grids
@@ -280,6 +370,14 @@ function evolve_rk4_proto!(grids,differentials,N)
 end
 
 # ╔═╡ 0d4f4738-5b03-43c8-b0b0-59bea32d16a4
+"""
+    evolve_euler_proto!(grids,differentials,N,p)
+
+Run the unfinished combined-grid Euler prototype with
+`grids = (sum_s_grid, a_grid)`, `differentials = (dt, dz)`, and
+`N = (Nz, Nd, Nt)`. Uses notebook-global helpers, including `fa2`,
+and prints the temporary combined array.
+"""
 function evolve_euler_proto!(grids,differentials,N,p)
 
 	sum_s_grid, a_grid = grids

@@ -1,3 +1,10 @@
+"""
+    y_width(y_pulse_width, beta, Z_length)
+
+Return the default full transverse domain width: six times the initial
+Gaussian width, scaled by diffraction broadening over `Z_length`.
+`y_pulse_width` must be positive.
+"""
 y_width(y_pulse_width, beta, Z_length) = 6*y_pulse_width*sqrt(1+(2*beta*Z_length/y_pulse_width^2)^2)
 
 """
@@ -32,8 +39,14 @@ Base.@kwdef struct EchoConfig
 
 
     """
-    This following constructor just checks the input config and makes sure
-    the values are valid
+        EchoConfig(Nt, Ti, Tf, d_width, Nd, Nz, Zi, Zf,
+                   alpha, beta, Ny, y_pulse_width, Yi, Yf, pulses)
+
+    Convert scalar parameters to their stored numeric types and validate the
+    time, detuning, spatial, and pulse domains. Counts of zero or one for
+    `Nd`, `Nz`, and `Ny` are stored as one. Invalid domains and nonfinite
+    parameters raise `ArgumentError`; incompatible numeric conversions may
+    raise conversion errors. Prefer the keyword constructor for normal use.
     """
 
     function EchoConfig(

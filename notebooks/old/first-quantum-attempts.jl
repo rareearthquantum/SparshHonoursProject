@@ -33,6 +33,12 @@ let
 	rz = 1.0
 	densitymatrix = 0.5*(QT.one(QT.sigmaz()) + rx*QT.sigmax() + ry*QT.sigmay() + rz*QT.sigmaz())
 
+	"""
+	    expectation_val(operator::QT.QuantumObject)
+
+	Return `tr(densitymatrix * operator)` using the density matrix captured
+	by the surrounding notebook cell.
+	"""
 	function expectation_val(operator::QT.QuantumObject)
 		return QT.tr(densitymatrix*operator)
 	end
@@ -55,6 +61,12 @@ md"""
 # ╔═╡ 849804a8-d0d6-48c8-95cd-fc8972c3f958
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    sigma(n, a, b)
+
+Return the single-system transition operator `|a><b|` for an
+`n`-dimensional basis using the notebook's `QT` library.
+"""
 function sigma(n, a, b)
 	return QT.basis(n, a) * QT.basis(n,b)'
 end
@@ -69,6 +81,13 @@ sigma(2,1,1)
 # ╔═╡ 5543ce38-74af-4181-adb1-7b7c984f8bf9
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    sigma_N(n, a, b, i, N)
+
+Prototype a tensor-product operator acting as `sigma(n, a, b)` on
+subsystem `i` and identity on the other `N-1` subsystems. This disabled
+exploratory cell retains its original allocation expression.
+"""
 function sigma_N(n, a, b, i, N)
 	sigma_list = Array{QT.QuantumObject, N}
 	for j in 1:N
@@ -105,6 +124,13 @@ end
 # ╔═╡ b05b8c53-5102-4fdd-9914-cc686415b52b
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    set_H_0(object::OBBase, energies::Vector{Float64})
+
+Return a bare Hamiltonian quantum object with diagonal `energies`,
+or an all-zero matrix of size `object.n_states` when energies is empty.
+Despite its name, this helper does not assign `object.H_0`.
+"""
 function set_H_0(object::OBBase, energies::Vector{Float64})
 	if energies |> isempty
 		H_0 = LA.zeros(object.n_states, object.n_states)
@@ -118,6 +144,11 @@ end
 # ╔═╡ f5f1db2d-d7c4-4cad-b812-50f133cf7f88
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    H_I_list(object::OBBase)
+
+Return the interaction Hamiltonian list stored in `object.H_Ω_list`.
+"""
 function H_I_list(object::OBBase)
 	return object.H_Ω_list
 end
@@ -126,6 +157,12 @@ end
 # ╔═╡ 25c8b22e-7df1-45c7-9184-3bc422a51fe1
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    H_I_sum(object::OBBase)
+
+Return the sum of the interaction Hamiltonians in `object.H_Ω_list`,
+starting from a zero operator of dimension `object.n_states`.
+"""
 function H_I_sum(object::OBBase)
 	H_I = QT.QuantumObject(LA.zeros(object.n_states, object.n_states))
 	for i in object |> H_I_list
@@ -138,6 +175,13 @@ end
 # ╔═╡ 6d0c74a1-bf04-4f31-a5f0-1e34b2f9fa2a
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    states_t(object::OBBase)
+
+Prototype allocation and copying of the states in `object.result` into
+a time-indexed array. Chooses ket or density-matrix dimensions based on
+collapse operators; the disabled implementation does not return the array.
+"""
 function states_t(object::OBBase)
 	if object.collapse_operators |> isempty
 		states_t = LA.zeros(Complex, (length(object.result.times), object.n_states, 1))
@@ -299,11 +343,24 @@ md"""
 """
 
 # ╔═╡ ac903da5-edf9-4cc8-a021-42c8246ab3f9
+"""
+    pulse(t,t0,width,A)
+
+Evaluate the historical Gaussian `A * exp(-((t-t0)/width)^2)`.
+`A` is peak amplitude and `width` is the 1/e half-width; these notebook
+parameters differ from the area and standard deviation used in `src/`.
+"""
 function pulse(t,t0,width,A)
 	A * exp(-((t-t0)/width)^2)
 end
 
 # ╔═╡ 03f3900e-cbd6-4b43-bc79-fc5c1902fcc5
+"""
+    Ein(t)
+
+Return this notebook's prescribed temporal input field at time `t`,
+using the hard-coded Gaussian pulse parameters below.
+"""
 function Ein(t)
 	p1 = pulse(t,5.0,1.0,1.0)
 	#p2 = pulse(t,18.0,1.0,1.0)
@@ -311,6 +368,12 @@ function Ein(t)
 end
 
 # ╔═╡ ab96396b-74b6-4790-9f11-e3c118738a29
+"""
+    my_rk4_term(f, h, i)
+
+Return the prototype weighted increment
+`h/6 * (f(i) + 4f(i+1) + f(i+2))` from three indexed samples.
+"""
 function my_rk4_term(f, h, i)
 	return h/6 * (f(i) + 4*f(i+1) + f(i+2))
 end
@@ -318,6 +381,12 @@ end
 # ╔═╡ 25359acf-fbed-4ec4-ab42-cb3c34ad2157
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    f1!(du, u, p, t)
+
+Fill `du` with the linear atomic derivative using
+`p = (d_grid, a_grid)` for fixed detunings and field samples. Mutates `du`.
+"""
 function f1!(du, u, p, t) #vary in t, fix z and d
 	d_grid, a_grid = p
 	du .= im.*d_grid.*u + im.*a_grid
@@ -327,6 +396,13 @@ end
 # ╔═╡ d5468e34-4ff4-4e4e-be47-b5e1b2f21ebc
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    f2!(du, u, p, t)
+
+Fill `du` with the field derivative from the detuning sum along the
+second axis of the supplied 2D atomic grid.
+`p = (alpha, s_grid)`; mutates `du`.
+"""
 function f2!(du, u, p, t) #fix t and sum over detunings, vary in z
 	α_c, s_grid = p
 	du .= im.*α_c.*reduce(+, s_grid, dims=2) #s_grid passed in should be 2d
@@ -336,6 +412,12 @@ end
 # ╔═╡ 92067c20-c358-49e0-9505-2a97d087cafb
 # ╠═╡ disabled = true
 #=╠═╡
+"""
+    f3!(du, u, p, t)
+
+Fill `du[j] = im*d_val*u[j] + im*a_grid[j]` for each state entry,
+using `p = (d_val, a_grid)`. Mutates `du`.
+"""
 function f3!(du, u, p, t)
 	d_val, a_grid = p
 	
@@ -358,7 +440,20 @@ begin
 	s_grid[:,:,1] .= zeros(Nz,Nd)
 	a_grid[1,:] .= Ein.(time_grid)
 
+	"""
+	    fs1(i,j,k)
+
+	Return the atomic derivative at longitudinal, detuning, and time indices
+	`(i, j, k)`, reading the notebook globals `d_grid`, `s_grid`, and `a_grid`.
+	"""
 	fs1(i,j,k) = im*d_grid[i,j]*s_grid[i,j,k] + im*a_grid[i,k]
+	"""
+	    fa1(i,k)
+
+	Return the field derivative at longitudinal and time indices `(i, k)`
+	from the sum of the notebook's atomic coherence over detunings, using
+	the global coupling and `s_grid`.
+	"""
 	fa1(i,k) = im*α_c*sum(s_grid[i,:,k])
 end
 

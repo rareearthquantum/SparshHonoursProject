@@ -13,11 +13,25 @@ md"""
 """
 
 # ╔═╡ 74a52f44-aba2-452f-b3bc-80f7d3ecc4c0
+"""
+    euler_step!(v,f,h,i)
+
+Write the forward Euler update `v[i+1] = v[i] + h*f(i)` in place.
+The overload with `N` skips indices at or beyond `N-1`; otherwise the
+caller must ensure that the next sample exists.
+"""
 function euler_step!(v,f,h,i)
 	v[i+1] = v[i] + h*f(i)
 end
 
 # ╔═╡ 531de10a-80a6-4d14-8fe1-95fb827073b4
+"""
+    adams_bashforth_2step!( v::AbstractArray, f::Function, h::Float64, i::Int64 )
+
+Write one two-step Adams–Bashforth update into `v[i+1]` using indexed
+derivatives `f` and step size `h`. Requires the previous derivative
+at `i-1` and space for the next sample; returns the assigned value.
+"""
 function adams_bashforth_2step!(
 	v::AbstractArray,
 	f::Function,
@@ -28,6 +42,13 @@ function adams_bashforth_2step!(
 end
 
 # ╔═╡ 9497b76d-af14-4e22-8c7c-a22a05f28887
+"""
+    adams_moulton_2step!( v::AbstractArray, f::Function, fp, h::Float64, i::Int64 )
+
+Write the Adams–Moulton correction into `v[i+1]` using derivative
+prediction `fp`, previous samples `f(i)` and `f(i-1)`, and step size `h`.
+Return the assigned value.
+"""
 function adams_moulton_2step!(
 	v::AbstractArray,
 	f::Function,
@@ -39,6 +60,13 @@ function adams_moulton_2step!(
 end
 
 # ╔═╡ a78e498f-29bf-4531-ae4d-1b13a178215e
+"""
+    adams_bashforth_3step!( v::AbstractArray, f::Function, h::Float64, i::Int64 )
+
+Write one three-step Adams–Bashforth update into `v[i+1]` with step
+size `h`. Requires indexed derivatives through `f(i-2)`; returns the
+assigned value.
+"""
 function adams_bashforth_3step!(
 	v::AbstractArray,
 	f::Function,
@@ -49,6 +77,13 @@ function adams_bashforth_3step!(
 end
 
 # ╔═╡ 18bc2d84-aaad-4d92-b194-f0602dfe5cad
+"""
+    adams_bashforth_4step!( v::AbstractArray, f::Function, h::Float64, i::Int64 )
+
+Write one four-step Adams–Bashforth update into `v[i+1]` with step
+size `h`. Requires indexed derivatives through `f(i-3)`; returns the
+assigned value.
+"""
 function adams_bashforth_4step!(
 	v::AbstractArray,
 	f::Function,
@@ -64,6 +99,13 @@ md"""
 """
 
 # ╔═╡ b30830b9-f4a8-4df9-8bab-f02007de85c8
+"""
+    pulse( t::Float64, t0::Float64, width::Float64, A::Float64 )
+
+Evaluate the historical Gaussian `A * exp(-((t-t0)/width)^2)`.
+`A` is peak amplitude and `width` is the 1/e half-width; these notebook
+parameters differ from the area and standard deviation used in `src/`.
+"""
 function pulse(
 	t::Float64,
 	t0::Float64,
@@ -74,6 +116,12 @@ function pulse(
 end
 
 # ╔═╡ 6d17fbf7-b397-4df5-8ac8-84977d15387a
+"""
+    Ein_t(t::Float64)
+
+Return the temporal input Gaussian at time `t` using this notebook's
+hard-coded centre, 1/e half-width, and peak amplitude.
+"""
 function Ein_t(t::Float64)
 	p1c, p1w, p1A = 5.0, 1.0, 1.0
 	p1 = pulse(t,p1c,p1w,p1A)
@@ -82,6 +130,12 @@ function Ein_t(t::Float64)
 end
 
 # ╔═╡ 4a3813b4-f8b4-4e1e-a26c-540c544157b9
+"""
+    Ein_y(y::Float64)
+
+Return the transverse input Gaussian at `y` using this notebook's
+hard-coded centre, 1/e half-width, and peak amplitude.
+"""
 function Ein_y(y::Float64)
 	p_c, p_w, p_A = 0.0, 1.0, 1.0
 	p = pulse(y,p_c,p_w,p_A)
@@ -94,6 +148,13 @@ md"""
 """
 
 # ╔═╡ 2f784238-e6e9-429f-9d8a-7f3812e99cf7
+"""
+    s_evolve!(du,u,p,t)
+
+Fill `du` with the linear atomic-response derivative at time `t`.
+`p = (d, Nd, input_field)` supplies detunings, ensemble size, and a
+callable temporal field. The derivative is `im*d*u + im*input_field(t)`.
+"""
 function s_evolve!(du,u,p,t)
 	
 	d,Nd,a_interp = p
@@ -102,6 +163,12 @@ function s_evolve!(du,u,p,t)
 end
 
 # ╔═╡ 4b8ca47b-2d34-49ff-a6d9-131f948cf798
+"""
+    f_a_2d( α::Float64, s_grid::AbstractArray, konstant::Float64, dy2::ComplexF64 )
+
+Return the field derivative from coupling `α`, the detuning sum of
+`s_grid`, and transverse second derivative `dy2` scaled by `konstant`.
+"""
 f_a_2d(
 	α::Float64,
 	s_grid::AbstractArray,
@@ -115,6 +182,15 @@ md"""
 """
 
 # ╔═╡ fdd6779b-34a2-4cbf-ba1c-94ec29bc9b41
+"""
+    initialise_params( f::NTuple{2,Function}, N::NTuple{4,Int64}, B::NTuple{3,NTuple{2,Float64}} )
+
+Allocate this notebook's 2D simulation grids from input callables
+`f = (temporal, transverse)`, counts `N = (Nz, Nd, Nt, Ny)`, and
+bounds `B = ((Zi, Zf), (Ti, Tf), (Yi, Yf))`. Initialise the first
+atomic time plane and input field plane. Return `(grids, differentials,
+(frequencies, laplacian_factors))`; array order is defined below.
+"""
 function initialise_params(
 	f::NTuple{2,Function},
 	N::NTuple{4,Int64},
@@ -174,6 +250,13 @@ function initialise_params(
 end
 
 # ╔═╡ afe04c69-7589-49cf-82fe-9ad87bf05c5a
+"""
+    stepping_a_4step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
+
+Update `v[i+1]` with four-step Adams–Bashforth once enough history
+exists, using Euler, two-step, and three-step starts at indices 1–3.
+`f` supplies indexed derivatives and `h` is the step size.
+"""
 function stepping_a_4step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
 	if (i >= 4)
 		adams_bashforth_4step!(v, f, h, i)
@@ -189,6 +272,13 @@ function stepping_a_4step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
 end
 
 # ╔═╡ f53f13e6-5281-498b-b4dd-05d192f6521f
+"""
+    stepping_a_3step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
+
+Update `v[i+1]` with three-step Adams–Bashforth, using Euler and
+two-step starts at indices 1 and 2. `f` supplies indexed derivatives
+and `h` is the step size.
+"""
 function stepping_a_3step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
 	if (i >= 3)
 		adams_bashforth_3step!(v, f, h, i)
@@ -202,6 +292,12 @@ function stepping_a_3step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
 end
 
 # ╔═╡ 365c29c9-a2ce-40de-a1d3-7a626a699dc2
+"""
+    stepping_a_2step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
+
+Update `v[i+1]` with two-step Adams–Bashforth, using an Euler start
+at index 1. `f` supplies indexed derivatives and `h` is the step size.
+"""
 function stepping_a_2step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
 	if (i >= 2)
 		adams_bashforth_2step!(v, f, h, i)
@@ -211,6 +307,15 @@ function stepping_a_2step!(v::AbstractArray,f::Function,h::Float64,i::Int64)
 end
 
 # ╔═╡ fc1987d9-8415-4a16-a348-03ebc3532eeb
+"""
+    evolve_a_grid( t_grid::LinRange{Float64,Int64}, a_grid::Array{ComplexF64}, v_factor, l::Int64, α::Float64, s_grid::Array{ComplexF64}, konstant::Float64, dz::Float64, i::Int64, Nz::Int64 )
+
+Mutate the next longitudinal field plane at transverse index `l`,
+for each time in `t_grid`. Compute transverse second derivatives with
+FFT factors `v_factor`, combine diffraction and atomic response, and
+advance by `dz` with the notebook's field stepper. `i` is the current
+longitudinal index and `Nz` is the total longitudinal count.
+"""
 function evolve_a_grid(
 	t_grid::LinRange{Float64,Int64},
 	a_grid::Array{ComplexF64},
@@ -233,6 +338,15 @@ function evolve_a_grid(
 end
 
 # ╔═╡ c3f83928-5a2b-11f1-a7b3-ff05f209adb2
+"""
+    evolve_diff_2d( f::NTuple{2,Function}, N::NTuple{4,Int64}, B::NTuple{3,NTuple{2,Float64}}, p::NTuple{2,Float64} )
+
+Run the notebook's 2D propagation prototype from input callables `f`,
+counts `N = (Nz, Nd, Nt, Ny)`, coordinate bounds `B`, and
+`p = (coupling, diffraction)`. Integrate the atomic response with an ODE
+solver and step the field along z. Return `((s_grid, a_grid),
+(z_grid, t_grid, y_grid))`; some prototype dependencies are notebook globals.
+"""
 function evolve_diff_2d(
 	f::NTuple{2,Function},
 	N::NTuple{4,Int64},
