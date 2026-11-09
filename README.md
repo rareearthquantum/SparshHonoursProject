@@ -58,6 +58,10 @@ This is an execution example, not a converged scientific calculation.
 `run_2d_simulation(cfg)` runs the solver and selects the existing research plots.
 Include `src/includes.jl` once per Julia session.
 
+Progress reports actual completed work at roughly 10% intervals, including the
+final polarisation calculation. Use `run_2d_propagation(cfg; show_progress=false)`
+to suppress progress messages.
+
 ## Configuration
 
 Set parameters using `EchoConfig` keyword arguments in your run script:
@@ -150,6 +154,7 @@ Within the solver, the descriptive names `rabi_frequency`, `polarisation`, and
 - `src/grids.jl`: coordinate grids and input-field construction.
 - `src/integrators.jl`: RK4 atomic integration and AB2 field stepping.
 - `src/simulation.jl`: propagation loop and result arrays.
+- `src/progress.jl`: progress reporting and elapsed-time formatting.
 - `src/plotting/helpers.jl`: shared styles, field transformations, and plot helpers.
 - `src/plotting/field_1d.jl`, `field_2d.jl`: field plots for each spatial model.
 - `src/plotting/atomic_response.jl`: polarisation and Bloch-component plots.

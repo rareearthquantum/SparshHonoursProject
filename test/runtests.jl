@@ -6,8 +6,61 @@ include(joinpath(@__DIR__, "..", "src", "pulse_presets.jl"))
 include(joinpath(@__DIR__, "..", "src", "config_hardcoded.jl"))
 include(joinpath(@__DIR__, "..", "src", "grids.jl"))
 include(joinpath(@__DIR__, "..", "src", "integrators.jl"))
+include(joinpath(@__DIR__, "..", "src", "progress.jl"))
 include(joinpath(@__DIR__, "..", "src", "simulation.jl"))
 include(joinpath(@__DIR__, "..", "src", "saving.jl"))
+
+@testset "Progress reports actual completion" begin
+    for total in (1, 2, 3, 7, 64, 128)
+        io = IOBuffer()
+        progress = SimulationProgress(total; io)
+        for completed in 0:total
+            report_progress!(progress, completed)
+        end
+        report_progress!(progress, total) # Repeated completion must not print twice.
+        reports = collect(eachmatch(r"(\d+)% complete \((\d+)/(\d+) steps\)", String(take!(io))))
+        percentages = [parse(Int, report[1]) for report in reports]
+        @test last(percentages) == 100
+        @test count(==(100), percentages) == 1
+        @test issorted(percentages)
+        @test length(reports) <= 10
+        @test all(report -> parse(Int, report[3]) == total, reports)
+        @test all(report -> parse(Int, report[1]) ==
+            fld(100 * parse(Int, report[2]), total), reports)
+    end
+    io = IOBuffer()
+    progress = SimulationProgress(1; enabled=false, io)
+    report_progress!(progress, 1)
+    @test isempty(String(take!(io)))
+    @test_throws ArgumentError SimulationProgress(0)
+    @test_throws ArgumentError report_progress!(SimulationProgress(1; io), 2)
+
+    for Nz in (1, 2, 8, 64), final_polarisation in (false, true)
+        cfg = EchoConfig(Nt=16, Nd=1, Nz=Nz, Ny=1, alpha=0.0, beta=0.0)
+        mktemp() do _, io
+            result = redirect_stdout(io) do
+                run_2d_propagation(cfg; compute_final_polarisation=final_polarisation)
+            end
+            flush(io)
+            seekstart(io)
+            output = read(io, String)
+            expected_steps = Nz - 1 + Int(final_polarisation || Nz == 1)
+            @test occursin("100% complete ($(expected_steps)/$(expected_steps) steps)", output)
+            @test count("100% complete", output) == 1
+            truncate(io, 0)
+            seekstart(io)
+            quiet_result = redirect_stdout(io) do
+                run_2d_propagation(cfg; compute_final_polarisation=final_polarisation,
+                    show_progress=false)
+            end
+            flush(io)
+            seekstart(io)
+            @test isempty(read(io, String))
+            @test quiet_result.Omega == result.Omega
+            @test quiet_result.P == result.P
+        end
+    end
+end
 
 @testset "Time coordinates in results and saved data" begin
     cfg = EchoConfig(Nt=32, Ti=2.0, Tf=4.0, Nd=1, Nz=1, Ny=1)
