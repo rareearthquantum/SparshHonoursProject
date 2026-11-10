@@ -149,3 +149,5 @@ end
         @test_throws ArgumentError EchoConfig(pulses=[(valid, invalid)])
     end
 end
+
+include("simulation_regressions.jl")
