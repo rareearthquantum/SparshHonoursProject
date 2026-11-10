@@ -136,6 +136,47 @@ and `beta` has transverse-length squared per longitudinal-length units.
 All parameters are plain numeric values; no unit package or automatic conversion
 is used by the simulation. Record the chosen scales with shared results.
 
+## Constructing user-facing inputs
+
+`SimulationConfig`, `PulseSpec`, `MediumSpec`, and `GridSpec` are standalone
+input records. Load them explicitly; the current entry points continue to use
+`EchoConfig`. They support construction, field access, and standard Julia display
+only. There is no conversion to solver inputs, unit conversion, grid generation,
+preset expansion, or physical/cross-field validation yet.
+
+For example, from a Julia session in the project root:
+
+```julia
+include("src/config/simulation_config.jl")
+
+# Here we choose seconds, metres, and angular frequencies in rad/s.
+cfg = SimulationConfig(
+    geometry=:one_d,
+    pulses=[PulseSpec(center=2e-6, width=0.2e-6, area=pi/2, y_width=0.5e-3)],
+    medium=MediumSpec(d_width=2pi*1e6, alpha=2e8, beta=0.0),
+    grid=GridSpec(Nt=64, Ti=0.0, Tf=5e-6, Nd=16,
+        Nz=8, Zi=0.0, Zf=0.01, Ny=1, Yi=-0.002, Yf=0.002),
+)
+
+@show cfg
+@show cfg.pulses[1].width cfg.medium.d_width cfg.grid.Nt
+```
+
+The example coefficients illustrate input syntax rather than a calibrated
+material. Numerical defaults use the existing project's familiar values, without
+assuming SI units. Gaussian temporal widths are standard deviations, temporal
+areas are full-pulse integrals of Rabi frequency, and transverse profiles are
+described as unit-peak Gaussians. Geometry and shape symbols are descriptive
+labels; they do not apply presets or rewrite settings. Default pulses and bounds
+are fixed values rather than functions of other fields. Each record's docstring
+describes its fields and units.
+
+Construction-only checks can run without loading the solvers:
+
+```sh
+julia --project=. test/configuration_construction.jl
+```
+
 ## Results and source files
 
 `result.Omega[t,z,y]` is the complex field expressed as a Rabi frequency.
@@ -155,7 +196,8 @@ only load the files in their component, in dependency order.
 src/
 ├── main_include.jl
 ├── config/
-│   └── echo_config.jl       # Defaults, configuration type, and validation
+│   ├── echo_config.jl       # Existing solver configuration and validation
+│   └── simulation_config.jl # Standalone user-facing input records
 ├── pulses/
 │   ├── parameters.jl        # PulseParams and its constructor
 │   ├── gaussian.jl          # Gaussian evaluations

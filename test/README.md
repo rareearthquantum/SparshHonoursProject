@@ -6,6 +6,14 @@ Run the full suite from the project root:
 julia --project=. test/runtests.jl
 ```
 
+The suite also includes `configuration_construction.jl`, which checks the standalone
+user-input records, explicit settings, inspection, and independent default pulse
+vectors. Run just those checks without loading any solver components:
+
+```sh
+julia --project=. test/configuration_construction.jl
+```
+
 `simulation_regressions.jl` is included by that runner. It adds these small cases:
 
 | Case | Grid counts | Reference or invariant |

@@ -151,3 +151,4 @@ end
 end
 
 include("simulation_regressions.jl")
+include("configuration_construction.jl")
